@@ -1,0 +1,336 @@
+-- ========================
+-- CREACIÓN DE TABLAS
+-- ========================
+
+-- Tabla de productos
+CREATE TABLE productos (
+    id_producto NUMBER PRIMARY KEY,
+    nombre VARCHAR2(100) NOT NULL,
+    categoria VARCHAR2(50),
+    precio NUMBER(10,2) NOT NULL,
+    stock NUMBER(5) NOT NULL,
+    estado VARCHAR2(20) CHECK (estado IN ('Disponible', 'Agotado', 'Próximo a vencer'))
+);
+
+-- Tabla de facturas
+CREATE TABLE facturas (
+    id_factura NUMBER PRIMARY KEY,
+    fecha DATE DEFAULT SYSDATE,
+    total NUMBER(10,2),
+    id_cliente NUMBER
+);
+
+-- Tabla de devoluciones
+CREATE TABLE devoluciones (
+    id_devolucion NUMBER PRIMARY KEY,
+    id_factura NUMBER,
+    motivo VARCHAR2(255),
+    fecha DATE DEFAULT SYSDATE,
+    FOREIGN KEY (id_factura) REFERENCES facturas(id_factura)
+);
+
+-- ========================
+-- INSERCIÓN DE DATOS
+-- ========================
+
+INSERT INTO productos (id_producto, nombre, categoria, precio, stock, estado)
+VALUES (1, 'Manzana', 'Frutas', 0.50, 100, 'Disponible');
+
+INSERT INTO productos (id_producto, nombre, categoria, precio, stock, estado)
+VALUES (2, 'Zanahoria', 'Verduras', 0.30, 50, 'Disponible');
+
+-- ========================
+-- PROCEDIMIENTOS ALMACENADOS
+-- ========================
+
+-- Procedimiento para insertar un producto
+CREATE OR REPLACE PROCEDURE insertar_producto (
+    p_id_producto IN NUMBER,
+    p_nombre IN VARCHAR2,
+    p_categoria IN VARCHAR2,
+    p_precio IN NUMBER,
+    p_stock IN NUMBER,
+    p_estado IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO productos (id_producto, nombre, categoria, precio, stock, estado)
+    VALUES (p_id_producto, p_nombre, p_categoria, p_precio, p_stock, p_estado);
+    COMMIT;
+END;
+/
+
+-- Procedimiento para registrar una factura
+CREATE OR REPLACE PROCEDURE registrar_factura (
+    p_id_factura IN NUMBER,
+    p_total IN NUMBER,
+    p_id_cliente IN NUMBER
+) AS
+BEGIN
+    INSERT INTO facturas (id_factura, fecha, total, id_cliente)
+    VALUES (p_id_factura, SYSDATE, p_total, p_id_cliente);
+    COMMIT;
+END;
+/
+
+-- ========================
+-- TRIGGERS
+-- ========================
+
+-- Trigger para evitar stock negativo
+CREATE OR REPLACE TRIGGER evitar_stock_negativo
+BEFORE UPDATE ON productos
+FOR EACH ROW
+BEGIN
+    IF :NEW.stock < 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'No se puede tener stock negativo.');
+    END IF;
+END;
+/
+
+
+-- Trigger para evitar eliminación de clientes con facturas asociadas
+CREATE OR REPLACE TRIGGER trg_prevenir_eliminacion_cliente
+BEFORE DELETE ON clientes
+FOR EACH ROW
+DECLARE
+    v_existe NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_existe FROM facturas WHERE id_cliente = :OLD.id_cliente;
+    IF v_existe > 0 THEN
+        RAISE_APPLICATION_ERROR(-20002, 'No se puede eliminar un cliente con facturas registradas.');
+    END IF;
+END;
+/
+
+
+-- Trigger para actualizar stock después de una venta
+CREATE OR REPLACE TRIGGER trg_actualizar_stock
+AFTER INSERT ON facturas
+FOR EACH ROW
+BEGIN
+    UPDATE productos
+    SET stock = stock - 1
+    WHERE id_producto = :NEW.id_factura;
+END;
+/
+
+
+
+-- ========================
+-- FUNCIONES
+-- ========================
+
+-- Función para calcular el total de una factura
+CREATE OR REPLACE FUNCTION calcular_total_factura(
+    p_id_factura IN NUMBER
+) RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT total INTO v_total FROM facturas WHERE id_factura = p_id_factura;
+    RETURN v_total;
+END;
+/
+
+-- ========================
+-- VISTAS
+-- ========================
+
+-- Vista de productos disponibles
+CREATE OR REPLACE VIEW vista_productos_disponibles AS
+SELECT id_producto, nombre, categoria, precio, stock
+FROM productos
+WHERE estado = 'Disponible';
+
+-- ========================
+-- PAQUETES
+-- ========================
+
+-- Paquete para manejar productos
+CREATE OR REPLACE PACKAGE pkg_productos AS
+    PROCEDURE insertar_producto(
+        p_id_producto NUMBER, 
+        p_nombre VARCHAR2, 
+        p_categoria VARCHAR2, 
+        p_precio NUMBER, 
+        p_stock NUMBER, 
+        p_estado VARCHAR2
+    );
+    PROCEDURE eliminar_producto(p_id_producto NUMBER);
+    PROCEDURE actualizar_stock(p_id_producto NUMBER, p_stock NUMBER);
+    FUNCTION obtener_precio(p_id_producto NUMBER) RETURN NUMBER;
+END pkg_productos;
+/
+
+
+CREATE OR REPLACE PACKAGE pkg_productos AS
+    PROCEDURE insertar_producto(
+        p_id_producto NUMBER, 
+        p_nombre VARCHAR2, 
+        p_categoria VARCHAR2, 
+        p_precio NUMBER, 
+        p_stock NUMBER, 
+        p_estado VARCHAR2
+    );
+    
+    PROCEDURE eliminar_producto(p_id_producto NUMBER);
+    
+    PROCEDURE actualizar_stock(
+        p_id_producto NUMBER, 
+        p_stock NUMBER
+    );
+    
+    FUNCTION obtener_precio(
+        p_id_producto NUMBER
+    ) RETURN NUMBER;
+END pkg_productos;
+/
+
+-- Paquete para manejar clientes
+CREATE OR REPLACE PACKAGE pkg_clientes AS
+    PROCEDURE agregar_cliente(
+        p_id_cliente NUMBER,
+        p_nombre VARCHAR2
+    );
+    
+    PROCEDURE eliminar_cliente(p_id_cliente NUMBER);
+    
+    PROCEDURE actualizar_cliente(
+        p_id_cliente NUMBER,
+        p_nombre VARCHAR2
+    );
+END pkg_clientes;
+/
+
+
+-- Paquete para manejar facturas
+CREATE OR REPLACE PACKAGE pkg_facturas AS
+    PROCEDURE registrar_factura(
+        p_id_factura NUMBER, 
+        p_total NUMBER, 
+        p_id_cliente NUMBER
+    );
+    
+    PROCEDURE eliminar_factura(p_id_factura NUMBER);
+    
+    PROCEDURE actualizar_fecha_factura(
+        p_id_factura NUMBER, 
+        p_fecha DATE
+    );
+END pkg_facturas;
+/
+
+
+-- Paquete para manejar pagos
+CREATE OR REPLACE PACKAGE pkg_pagos AS
+    PROCEDURE registrar_pago(
+        p_id_factura NUMBER,
+        p_monto NUMBER
+    );
+    
+    PROCEDURE verificar_pago(
+        p_id_pago NUMBER,
+        p_existe OUT NUMBER
+    );
+END pkg_pagos;
+/
+
+-- Paquete para manejar pedidos
+CREATE OR REPLACE PACKAGE pkg_pedidos AS
+    PROCEDURE registrar_pedido(
+        p_id_pedido NUMBER,
+        p_id_cliente NUMBER
+    );
+    
+    PROCEDURE actualizar_estado_pedido(
+        p_id_pedido NUMBER,
+        p_estado VARCHAR2
+    );
+END pkg_pedidos;
+/
+
+
+
+-- Cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_productos AS
+    PROCEDURE insertar_producto(
+        p_id_producto NUMBER, 
+        p_nombre VARCHAR2, 
+        p_categoria VARCHAR2, 
+        p_precio NUMBER, 
+        p_stock NUMBER, 
+        p_estado VARCHAR2
+    ) AS
+    BEGIN
+        INSERT INTO productos (id_producto, nombre, categoria, precio, stock, estado)
+        VALUES (p_id_producto, p_nombre, p_categoria, p_precio, p_stock, p_estado);
+        COMMIT;
+    END insertar_producto;
+    
+    PROCEDURE eliminar_producto(p_id_producto NUMBER) AS
+    BEGIN
+        DELETE FROM productos WHERE id_producto = p_id_producto;
+        COMMIT;
+    END eliminar_producto;
+    
+    PROCEDURE actualizar_stock(
+        p_id_producto NUMBER, 
+        p_stock NUMBER
+    ) AS
+    BEGIN
+        UPDATE productos SET stock = p_stock WHERE id_producto = p_id_producto;
+        COMMIT;
+    END actualizar_stock;
+    
+    FUNCTION obtener_precio(
+        p_id_producto NUMBER
+    ) RETURN NUMBER AS
+        v_precio NUMBER;
+    BEGIN
+        SELECT precio INTO v_precio FROM productos WHERE id_producto = p_id_producto;
+        RETURN v_precio;
+    END obtener_precio;
+END pkg_productos;
+/
+
+
+-- ========================
+-- CURSORES
+-- ========================
+
+
+-- Cursor para obtener productos con bajo stock
+DECLARE
+    CURSOR cur_productos_bajo_stock IS
+        SELECT id_producto, nombre, stock FROM productos WHERE stock < 10;
+    v_id_producto productos.id_producto%TYPE;
+    v_nombre productos.nombre%TYPE;
+    v_stock productos.stock%TYPE;
+BEGIN
+    OPEN cur_productos_bajo_stock;
+    LOOP
+        FETCH cur_productos_bajo_stock INTO v_id_producto, v_nombre, v_stock;
+        EXIT WHEN cur_productos_bajo_stock%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE('Producto: ' || v_nombre || ' - Stock: ' || v_stock);
+    END LOOP;
+    CLOSE cur_productos_bajo_stock;
+END;
+/
+
+
+-- Cursor para obtener clientes frecuentes
+DECLARE
+    CURSOR cur_clientes_frecuentes IS
+        SELECT id_cliente, nombre FROM clientes
+        WHERE id_cliente IN (SELECT id_cliente FROM facturas GROUP BY id_cliente HAVING COUNT(*) > 5);
+    v_id_cliente clientes.id_cliente%TYPE;
+    v_nombre clientes.nombre%TYPE;
+BEGIN
+    OPEN cur_clientes_frecuentes;
+    LOOP
+        FETCH cur_clientes_frecuentes INTO v_id_cliente, v_nombre;
+        EXIT WHEN cur_clientes_frecuentes%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE('Cliente frecuente: ' || v_nombre);
+    END LOOP;
+    CLOSE cur_clientes_frecuentes;
+END;
+/
