@@ -1,0 +1,73 @@
+--=Creacion de Tablas=---
+
+CREATE TABLE Categorias(
+    id_categoria NUMBER PRIMARY KEY,
+    nombre VARCHAR2(100) NOT NULL);
+    
+CREATE TABLE Proovedores(
+    id_proovedor NUMBER PRIMARY KEY,
+    nombre varchar2(100) not null,
+    telefono number not null,
+    direccion VARCHAR2 (100) NOT NULL);
+
+
+
+CREATE TABLE Productos (
+    id_producto NUMBER PRIMARY KEY,
+    id_categoria number,
+    id_proveedor number,
+    nombre VARCHAR2(100) NOT NULL,
+    categoria VARCHAR2(50),
+    precio NUMBER(10,2) NOT NULL,
+    stock NUMBER(5) NOT NULL,
+    estado VARCHAR2(20) CHECK (estado IN ('Disponible', 'Agotado', 'Próximo a vencer')),
+    constraint fk_id_categoria foreign key (id_categoria) references Categorias(id_categoria),
+    constraint fk_id_proveedor foreign key (id_proveedor) references Proovedores(id_proovedor)
+    );
+    
+CREATE TABLE Usuario(
+    id_usuario NUMBER PRIMARY KEY,
+    nombre varchar2(100),
+    telefono number,
+    direccion varchar2(100),
+    email varchar2(100),
+    contraseña varchar2(100));
+
+CREATE TABLE Rol(
+    id_rol number primary key,
+    nombre varchar2(100));
+
+CREATE TABLE Usuario_Rol(
+    id_Usuario_Rol NUMBER primary key,
+    id_usuario number,
+    id_rol number,
+    constraint fk_id_usuario foreign key (id_usuario) references Usuario(id_usuario),
+    constraint fk_id_rol foreign key (id_rol) references Rol(id_rol));
+
+CREATE TABLE Facturas (
+    id_factura NUMBER PRIMARY KEY,
+    fecha DATE DEFAULT SYSDATE,
+    total NUMBER(10,2),
+    id_usuario NUMBER,
+    constraint fk_id_usuariofactura foreign key (id_usuario) references Usuario(id_usuario)
+);
+
+CREATE TABLE Detalles_Facturas(
+    id_detallesFactura NUMBER PRIMARY KEY,
+    id_factura NUMBER,
+    id_producto number,
+    cantidad number not null,
+    subtotal number not null,
+    constraint fk_id_dfactura foreign key (id_factura) references Facturas(id_factura),
+    constraint fk_id_dproducto foreign key (id_producto) references Productos(id_producto));
+
+-- Tabla de devoluciones
+CREATE TABLE Devoluciones (
+    id_devolucion NUMBER PRIMARY KEY,
+    id_factura NUMBER,
+    id_producto Number,
+    motivo VARCHAR2(255),
+    fecha DATE DEFAULT SYSDATE,
+    FOREIGN KEY (id_factura) REFERENCES facturas(id_factura),
+    constraint fk_id_devproducto foreign key (id_producto) references Productos(id_producto)
+);
