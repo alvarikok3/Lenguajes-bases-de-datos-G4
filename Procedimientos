@@ -1,0 +1,1577 @@
+-- ========================
+-- PROCEDIMIENTOS ALMACENADOS
+-- ========================
+
+-- Procedimiento para insertar un producto
+CREATE OR REPLACE PROCEDURE insertar_producto (
+    p_id_producto IN NUMBER,
+    p_nombre IN VARCHAR2,
+    p_categoria IN VARCHAR2,
+    p_precio IN NUMBER,
+    p_stock IN NUMBER,
+    p_estado IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO productos (id_producto, nombre, categoria, precio, stock, estado)
+    VALUES (p_id_producto, p_nombre, p_categoria, p_precio, p_stock, p_estado);
+    COMMIT;
+END;
+/
+
+-- Procedimiento para registrar una factura
+CREATE OR REPLACE PROCEDURE registrar_factura (
+    p_id_factura IN NUMBER,
+    p_total IN NUMBER,
+    p_id_cliente IN NUMBER
+) AS
+BEGIN
+    INSERT INTO facturas (id_factura, fecha, total, id_cliente)
+    VALUES (p_id_factura, SYSDATE, p_total, p_id_cliente);
+    COMMIT;
+END;
+/
+
+-- Procedimiento para actualizar el stock de un producto
+CREATE OR REPLACE PROCEDURE actualizar_stock_producto (
+    p_id_producto IN NUMBER,
+    p_stock IN NUMBER
+) AS
+BEGIN
+    UPDATE productos 
+    SET stock = p_stock 
+    WHERE id_producto = p_id_producto;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para cambiar el estado de un producto
+CREATE OR REPLACE PROCEDURE actualizar_estado_producto (
+    p_id_producto IN NUMBER,
+    p_estado IN VARCHAR2
+) AS
+BEGIN
+    UPDATE productos 
+    SET estado = p_estado 
+    WHERE id_producto = p_id_producto;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para eliminar un producto
+CREATE OR REPLACE PROCEDURE eliminar_producto (
+    p_id_producto IN NUMBER
+) AS
+BEGIN
+    DELETE FROM productos WHERE id_producto = p_id_producto;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para insertar una devolución
+CREATE OR REPLACE PROCEDURE registrar_devolucion (
+    p_id_devolucion IN NUMBER,
+    p_id_factura IN NUMBER,
+    p_motivo IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO devoluciones (id_devolucion, id_factura, motivo, fecha)
+    VALUES (p_id_devolucion, p_id_factura, p_motivo, SYSDATE);
+    COMMIT;
+END;
+/
+
+-- Procedimiento para actualizar el total de una factura
+CREATE OR REPLACE PROCEDURE actualizar_total_factura (
+    p_id_factura IN NUMBER,
+    p_total IN NUMBER
+) AS
+BEGIN
+    UPDATE facturas 
+    SET total = p_total 
+    WHERE id_factura = p_id_factura;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para eliminar una factura
+CREATE OR REPLACE PROCEDURE eliminar_factura (
+    p_id_factura IN NUMBER
+) AS
+BEGIN
+    DELETE FROM facturas WHERE id_factura = p_id_factura;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para agregar un cliente-------------------------------------
+CREATE OR REPLACE PROCEDURE agregar_cliente (
+    p_id_cliente IN NUMBER,
+    p_nombre IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO clientes (id_cliente, nombre) 
+    VALUES (p_id_cliente, p_nombre);
+    COMMIT;
+END;
+/
+
+-- Procedimiento para actualizar un cliente
+CREATE OR REPLACE PROCEDURE actualizar_cliente (
+    p_id_cliente IN NUMBER,
+    p_nombre IN VARCHAR2
+) AS
+BEGIN
+    UPDATE clientes 
+    SET nombre = p_nombre 
+    WHERE id_cliente = p_id_cliente;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para eliminar un cliente
+CREATE OR REPLACE PROCEDURE eliminar_cliente (
+    p_id_cliente IN NUMBER
+) AS
+BEGIN
+    DELETE FROM clientes WHERE id_cliente = p_id_cliente;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para registrar un pedido
+CREATE OR REPLACE PROCEDURE registrar_pedido (
+    p_id_pedido IN NUMBER,
+    p_id_cliente IN NUMBER
+) AS
+BEGIN
+    INSERT INTO pedidos (id_pedido, id_cliente) 
+    VALUES (p_id_pedido, p_id_cliente);
+    COMMIT;
+END;
+/
+
+-- Procedimiento para actualizar el estado de un pedido
+CREATE OR REPLACE PROCEDURE actualizar_estado_pedido (
+    p_id_pedido IN NUMBER,
+    p_estado IN VARCHAR2
+) AS
+BEGIN
+    UPDATE pedidos 
+    SET estado = p_estado 
+    WHERE id_pedido = p_id_pedido;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para eliminar un pedido
+CREATE OR REPLACE PROCEDURE eliminar_pedido (
+    p_id_pedido IN NUMBER
+) AS
+BEGIN
+    DELETE FROM pedidos WHERE id_pedido = p_id_pedido;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para registrar un pago
+CREATE OR REPLACE PROCEDURE registrar_pago (
+    p_id_pago IN NUMBER,
+    p_id_factura IN NUMBER,
+    p_monto IN NUMBER
+) AS
+BEGIN
+    INSERT INTO pagos (id_pago, id_factura, monto) 
+    VALUES (p_id_pago, p_id_factura, p_monto);
+    COMMIT;
+END;
+/
+
+-- Procedimiento para verificar si un pago existe
+CREATE OR REPLACE PROCEDURE verificar_pago (
+    p_id_pago IN NUMBER,
+    p_existe OUT NUMBER
+) AS
+BEGIN
+    SELECT COUNT(*) INTO p_existe FROM pagos WHERE id_pago = p_id_pago;
+END;
+/
+
+-- Procedimiento para listar productos con stock bajo
+CREATE OR REPLACE PROCEDURE productos_stock_bajo AS
+BEGIN
+    FOR r IN (SELECT id_producto, nombre, stock FROM productos WHERE stock < 10) 
+    LOOP
+        DBMS_OUTPUT.PUT_LINE('Producto: ' || r.nombre || ' - Stock: ' || r.stock);
+    END LOOP;
+END;
+/
+
+-- Procedimiento para listar clientes frecuentes
+CREATE OR REPLACE PROCEDURE clientes_frecuentes AS
+BEGIN
+    FOR r IN (SELECT id_cliente, nombre FROM clientes WHERE id_cliente IN 
+              (SELECT id_cliente FROM facturas GROUP BY id_cliente HAVING COUNT(*) > 5)) 
+    LOOP
+        DBMS_OUTPUT.PUT_LINE('Cliente frecuente: ' || r.nombre);
+    END LOOP;
+END;
+/
+
+-- Procedimiento para obtener el total de facturación de un cliente
+CREATE OR REPLACE PROCEDURE total_facturado_cliente (
+    p_id_cliente IN NUMBER,
+    p_total OUT NUMBER
+) AS
+BEGIN
+    SELECT SUM(total) INTO p_total FROM facturas WHERE id_cliente = p_id_cliente;
+END;
+/
+
+-- Procedimiento para registrar un descuento en una factura
+CREATE OR REPLACE PROCEDURE aplicar_descuento (
+    p_id_factura IN NUMBER,
+    p_porcentaje IN NUMBER
+) AS
+BEGIN
+    UPDATE facturas 
+    SET total = total - (total * (p_porcentaje / 100)) 
+    WHERE id_factura = p_id_factura;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para registrar un reembolso
+CREATE OR REPLACE PROCEDURE registrar_reembolso (
+    p_id_reembolso IN NUMBER,
+    p_id_factura IN NUMBER,
+    p_monto IN NUMBER
+) AS
+BEGIN
+    INSERT INTO reembolsos (id_reembolso, id_factura, monto, fecha) 
+    VALUES (p_id_reembolso, p_id_factura, p_monto, SYSDATE);
+    COMMIT;
+END;
+/
+
+-- Procedimiento para actualizar datos de una devolución
+CREATE OR REPLACE PROCEDURE actualizar_devolucion (
+    p_id_devolucion IN NUMBER,
+    p_motivo IN VARCHAR2
+) AS
+BEGIN
+    UPDATE devoluciones 
+    SET motivo = p_motivo 
+    WHERE id_devolucion = p_id_devolucion;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para eliminar una devolución
+CREATE OR REPLACE PROCEDURE eliminar_devolucion (
+    p_id_devolucion IN NUMBER
+) AS
+BEGIN
+    DELETE FROM devoluciones WHERE id_devolucion = p_id_devolucion;
+    COMMIT;
+END;
+/
+
+-- Procedimiento para verificar la disponibilidad de un producto
+CREATE OR REPLACE PROCEDURE verificar_disponibilidad (
+    p_id_producto IN NUMBER,
+    p_disponible OUT VARCHAR2
+) AS
+BEGIN
+    SELECT estado INTO p_disponible FROM productos WHERE id_producto = p_id_producto;
+END;
+/
+
+-- ========================
+-- TRIGGERS
+-- ========================
+
+--1. Trigger para evitar stock negativo
+CREATE OR REPLACE TRIGGER evitar_stock_negativo
+BEFORE UPDATE ON productos
+FOR EACH ROW
+BEGIN
+    IF :NEW.stock < 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'No se puede tener stock negativo.');
+    END IF;
+END;
+/
+
+
+--2. Trigger para evitar eliminación de clientes con facturas asociadas
+CREATE OR REPLACE TRIGGER trg_prevenir_eliminacion_cliente
+BEFORE DELETE ON clientes
+FOR EACH ROW
+DECLARE
+    v_existe NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_existe FROM facturas WHERE id_cliente = :OLD.id_cliente;
+    IF v_existe > 0 THEN
+        RAISE_APPLICATION_ERROR(-20002, 'No se puede eliminar un cliente con facturas registradas.');
+    END IF;
+END;
+/
+
+
+-- 3.Trigger para actualizar stock después de una venta
+CREATE OR REPLACE TRIGGER trg_actualizar_stock
+AFTER INSERT ON facturas
+FOR EACH ROW
+BEGIN
+    UPDATE productos
+    SET stock = stock - 1
+    WHERE id_producto = :NEW.id_factura;
+END;
+
+-- 4.Trigger para cuando un producto esta a punto de acabarse
+
+CREATE OR REPLACE TRIGGER producto_casi_acabado
+AFTER UPDATE ON productos
+FOR EACH ROW
+BEGIN
+    IF :NEW.stock <= 2 THEN
+        DBMS_OUTPUT.PUT_LINE(' El producto ' || :NEW.nombre || ' está a punto de acabarse. Stock actual: ' || :NEW.stock);
+    END IF;
+END;
+
+-- 5.Trigger para cuando se registra una nueva devolucion
+
+CREATE OR REPLACE TRIGGER registro_devoluciones
+AFTER INSERT ON devoluciones
+FOR EACH ROW
+BEGIN
+    -- Actualizar el stock del producto devuelto
+    UPDATE productos 
+    SET stock = stock + :NEW.cantidad
+    WHERE id_prod = :NEW.id_prod;
+    
+    -- Mensaje opcional en la consola
+    DBMS_OUTPUT.PUT_LINE(' Stock actualizado: Se devolvieron ' || :NEW.cantidad || ' unidades del producto ID ' || :NEW.id_prod);
+END;
+/
+
+
+
+-- ========================
+-- FUNCIONES
+-- ========================
+
+-- Función para calcular el total de una factura
+CREATE OR REPLACE FUNCTION calcular_total_factura(
+    p_id_factura IN NUMBER
+) RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT total INTO v_total FROM facturas WHERE id_factura = p_id_factura;
+    RETURN v_total;
+END;
+/
+
+-- Función para calcular el stock total de un producto
+CREATE OR REPLACE FUNCTION calcular_stock_producto(
+    p_id_producto IN NUMBER
+) RETURN NUMBER AS
+    v_stock NUMBER;
+BEGIN
+    SELECT stock INTO v_stock FROM productos WHERE id_producto = p_id_producto;
+    RETURN v_stock;
+END;
+/
+
+-- Función para obtener el nombre de un cliente por su ID
+CREATE OR REPLACE FUNCTION obtener_nombre_cliente(
+    p_id_cliente IN NUMBER
+) RETURN VARCHAR2 AS
+    v_nombre VARCHAR2(100);
+BEGIN
+    SELECT nombre INTO v_nombre FROM clientes WHERE id_cliente = p_id_cliente;
+    RETURN v_nombre;
+END;
+/
+
+-- Función para verificar si un producto está disponible
+CREATE OR REPLACE FUNCTION producto_disponible(
+    p_id_producto IN NUMBER
+) RETURN VARCHAR2 AS
+    v_estado VARCHAR2(20);
+BEGIN
+    SELECT estado INTO v_estado FROM productos WHERE id_producto = p_id_producto;
+    RETURN v_estado;
+END;
+/
+
+-- Función para calcular el total de ventas de un cliente
+CREATE OR REPLACE FUNCTION total_ventas_cliente(
+    p_id_cliente IN NUMBER
+) RETURN NUMBER AS
+    v_total NUMBER := 0;
+BEGIN
+    SELECT NVL(SUM(total), 0) INTO v_total FROM facturas WHERE id_cliente = p_id_cliente;
+    RETURN v_total;
+END;
+/
+
+-- Función para calcular la cantidad total de productos vendidos
+CREATE OR REPLACE FUNCTION total_productos_vendidos RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT SUM(cantidad) INTO v_total FROM detalles_factura;
+    RETURN v_total;
+END;
+/
+
+-- Función para obtener el total de pedidos pendientes
+CREATE OR REPLACE FUNCTION total_pedidos_pendientes RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_total FROM pedidos WHERE estado = 'Pendiente';
+    RETURN v_total;
+END;
+/
+
+-- Función para obtener el monto total de pagos registrados
+CREATE OR REPLACE FUNCTION total_pagos_registrados RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT SUM(monto) INTO v_total FROM pagos;
+    RETURN v_total;
+END;
+/
+
+-- Función para obtener el número de clientes sin compras
+CREATE OR REPLACE FUNCTION clientes_sin_compras RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_total FROM clientes c 
+    LEFT JOIN facturas f ON c.id_cliente = f.id_cliente 
+    WHERE f.id_factura IS NULL;
+    RETURN v_total;
+END;
+/
+
+-- Función para calcular el monto total de reembolsos realizados
+CREATE OR REPLACE FUNCTION total_reembolsos RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT NVL(SUM(monto), 0) INTO v_total FROM reembolsos;
+    RETURN v_total;
+END;
+/
+
+-- Función para calcular la facturación de un mes específico
+CREATE OR REPLACE FUNCTION facturacion_mensual(
+    p_mes IN VARCHAR2
+) RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT NVL(SUM(total), 0) INTO v_total 
+    FROM facturas 
+    WHERE TO_CHAR(fecha, 'YYYY-MM') = p_mes;
+    RETURN v_total;
+END;
+/
+
+-- Función para contar los productos agotados
+CREATE OR REPLACE FUNCTION productos_agotados RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_total FROM productos WHERE stock = 0;
+    RETURN v_total;
+END;
+/
+
+-- Función para verificar si un cliente es frecuente
+CREATE OR REPLACE FUNCTION cliente_frecuente(
+    p_id_cliente IN NUMBER
+) RETURN VARCHAR2 AS
+    v_resultado VARCHAR2(10);
+    v_compras NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_compras FROM facturas WHERE id_cliente = p_id_cliente;
+    IF v_compras > 5 THEN
+        v_resultado := 'Sí';
+    ELSE
+        v_resultado := 'No';
+    END IF;
+    RETURN v_resultado;
+END;
+/
+
+-- Función para calcular el ingreso total por categoría
+CREATE OR REPLACE FUNCTION ingresos_por_categoria(
+    p_categoria IN VARCHAR2
+) RETURN NUMBER AS
+    v_total NUMBER;
+BEGIN
+    SELECT NVL(SUM(d.cantidad * p.precio), 0) INTO v_total
+    FROM productos p
+    JOIN detalles_factura d ON p.id_producto = d.id_producto
+    WHERE p.categoria = p_categoria;
+    RETURN v_total;
+END;
+/
+
+
+-- ========================
+-- VISTAS
+-- ========================
+-- Vista de productos disponibles
+CREATE OR REPLACE VIEW vista_productos_disponibles AS
+SELECT id_producto, nombre, categoria, precio, stock
+FROM productos
+WHERE estado = 'Disponible';
+
+-- Vista de productos con stock bajo
+CREATE OR REPLACE VIEW vista_productos_stock_bajo AS
+SELECT id_producto, nombre, categoria, precio, stock
+FROM productos
+WHERE stock < 10;
+
+-- Vista de clientes y sus compras
+CREATE OR REPLACE VIEW vista_clientes_compras AS
+SELECT c.id_cliente, c.nombre, COUNT(f.id_factura) AS total_compras, SUM(f.total) AS monto_total
+FROM clientes c
+LEFT JOIN facturas f ON c.id_cliente = f.id_cliente
+GROUP BY c.id_cliente, c.nombre;
+
+-- Vista de facturas con detalles del cliente
+CREATE OR REPLACE VIEW vista_facturas_detalles AS
+SELECT f.id_factura, f.fecha, f.total, c.nombre AS cliente
+FROM facturas f
+JOIN clientes c ON f.id_cliente = c.id_cliente;
+
+-- Vista de clientes frecuentes
+CREATE OR REPLACE VIEW vista_clientes_frecuentes AS
+SELECT c.id_cliente, c.nombre, COUNT(f.id_factura) AS total_facturas
+FROM clientes c
+JOIN facturas f ON c.id_cliente = f.id_cliente
+GROUP BY c.id_cliente, c.nombre
+HAVING COUNT(f.id_factura) > 5;
+
+-- Vista de productos más vendidos
+CREATE OR REPLACE VIEW vista_productos_mas_vendidos AS
+SELECT p.id_producto, p.nombre, SUM(d.cantidad) AS total_vendido
+FROM productos p
+JOIN detalles_factura d ON p.id_producto = d.id_producto
+GROUP BY p.id_producto, p.nombre
+ORDER BY total_vendido DESC;
+
+-- Vista de productos sin ventas
+CREATE OR REPLACE VIEW vista_productos_sin_ventas AS
+SELECT p.id_producto, p.nombre, p.categoria
+FROM productos p
+LEFT JOIN detalles_factura d ON p.id_producto = d.id_producto
+WHERE d.id_producto IS NULL;
+
+-- Vista de facturación mensual
+CREATE OR REPLACE VIEW vista_facturacion_mensual AS
+SELECT TO_CHAR(fecha, 'YYYY-MM') AS mes, SUM(total) AS total_facturado
+FROM facturas
+GROUP BY TO_CHAR(fecha, 'YYYY-MM')
+ORDER BY mes DESC;
+
+-- Vista de clientes sin compras
+CREATE OR REPLACE VIEW vista_clientes_sin_compras AS
+SELECT c.id_cliente, c.nombre
+FROM clientes c
+LEFT JOIN facturas f ON c.id_cliente = f.id_cliente
+WHERE f.id_factura IS NULL;
+
+-- Vista de ingresos por categoría de producto
+CREATE OR REPLACE VIEW vista_ingresos_por_categoria AS
+SELECT p.categoria, SUM(d.cantidad * p.precio) AS total_ingresos
+FROM productos p
+JOIN detalles_factura d ON p.id_producto = d.id_producto
+GROUP BY p.categoria
+ORDER BY total_ingresos DESC;
+
+-- ========================
+-- PAQUETES
+-- ========================
+
+-- 1. Paquete para manejar productos
+CREATE OR REPLACE PACKAGE pkg_productos AS
+    PROCEDURE insertar_producto(
+        p_id_producto NUMBER, 
+        p_nombre VARCHAR2, 
+        p_categoria VARCHAR2, 
+        p_precio NUMBER, 
+        p_stock NUMBER, 
+        p_estado VARCHAR2
+    );
+    PROCEDURE eliminar_producto(p_id_producto NUMBER);
+    PROCEDURE actualizar_stock(p_id_producto NUMBER, p_stock NUMBER);
+    FUNCTION obtener_precio(p_id_producto NUMBER) RETURN NUMBER;
+END pkg_productos;
+/
+-- Cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_productos AS
+    PROCEDURE insertar_producto(
+        p_id_producto NUMBER, 
+        p_nombre VARCHAR2, 
+        p_categoria VARCHAR2, 
+        p_precio NUMBER, 
+        p_stock NUMBER, 
+        p_estado VARCHAR2
+    ) AS
+    BEGIN
+        INSERT INTO productos (id_producto, nombre, categoria, precio, stock, estado)
+        VALUES (p_id_producto, p_nombre, p_categoria, p_precio, p_stock, p_estado);
+        COMMIT;
+    END insertar_producto;
+    
+    PROCEDURE eliminar_producto(p_id_producto NUMBER) AS
+    BEGIN
+        DELETE FROM productos WHERE id_producto = p_id_producto;
+        COMMIT;
+    END eliminar_producto;
+    
+    PROCEDURE actualizar_stock(
+        p_id_producto NUMBER, 
+        p_stock NUMBER
+    ) AS
+    BEGIN
+        UPDATE productos SET stock = p_stock WHERE id_producto = p_id_producto;
+        COMMIT;
+    END actualizar_stock;
+    
+    FUNCTION obtener_precio(
+        p_id_producto NUMBER
+    ) RETURN NUMBER AS
+        v_precio NUMBER;
+    BEGIN
+        SELECT precio INTO v_precio FROM productos WHERE id_producto = p_id_producto;
+        RETURN v_precio;
+    END obtener_precio;
+END pkg_productos;
+/
+
+-- 2.Paquete para manejar clientes
+CREATE OR REPLACE PACKAGE pkg_clientes AS
+    PROCEDURE agregar_cliente(
+        p_id_cliente NUMBER,
+        p_nombre VARCHAR2
+    );
+    
+    PROCEDURE eliminar_cliente(p_id_cliente NUMBER);
+    
+    PROCEDURE actualizar_cliente(
+        p_id_cliente NUMBER,
+        p_nombre VARCHAR2
+    );
+END pkg_clientes;
+
+-- Cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_clientes AS
+    PROCEDURE agregar_cliente(
+        p_id_cliente NUMBER, 
+        p_nombre VARCHAR2, 
+        p_cedula VARCHAR2, 
+        p_telefono NUMBER, 
+        p_email VARCHAR
+    ) AS
+    BEGIN
+        INSERT INTO productos (id_cliente, nombre, cedula, telefono, email)
+        VALUES (p_id_cliente, p_nombre, p_cedula, p_telefono, p_email);
+        COMMIT;
+    END agregar_cliente;
+    
+    PROCEDURE eliminar_cliente(p_id_cliente NUMBER) AS
+    BEGIN
+        DELETE FROM clientes WHERE id_cliente = p_id_cliente;
+        COMMIT;
+    END eliminar_cliente;
+    
+    PROCEDURE actualizar_cliente(
+        p_id_producto NUMBER, 
+        p_stock NUMBER
+    ) AS
+    BEGIN
+        UPDATE cliente SET nombre = p_nombre WHERE id_cliente = p_id_cliente;
+        COMMIT;
+    END actualizar_cliente;
+END pkg_clientes;
+
+
+-- 3.Paquete para manejar facturas
+CREATE OR REPLACE PACKAGE pkg_facturas AS
+    PROCEDURE registrar_factura(
+        p_id_factura NUMBER, 
+        p_total NUMBER, 
+        p_id_cliente NUMBER
+    );
+    
+    PROCEDURE eliminar_factura(p_id_factura NUMBER);
+    
+    PROCEDURE actualizar_fecha_factura(
+        p_id_factura NUMBER, 
+        p_fecha DATE
+    );
+END pkg_facturas;
+
+-- Cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_facturas AS
+    PROCEDURE registrar_factura(
+        p_id_factura NUMBER, 
+        p_fecha DATE, 
+        p_total VARCHAR2, 
+        p_id_cliente NUMBER
+    ) AS
+    BEGIN
+        INSERT INTO facturas (p_id_factura, p_fecha, p_total, p_id_cliente)
+        VALUES (p_id_factura, p_fecha, p_total, p_id_cliente);
+        COMMIT;
+    END registrar_factura;
+    
+    PROCEDURE eliminar_factura(p_id_cliente NUMBER) AS
+    BEGIN
+        DELETE FROM facturas WHERE id_factura = p_id_factura;
+        COMMIT;
+    END eliminar_factura;
+    
+    PROCEDURE actualizar_fecha_factura(
+        p_id_factura NUMBER, 
+        p_fecha DATE
+    ) AS
+    BEGIN
+        UPDATE facturas SET fecha = p_fecha WHERE id_factura = p_id_factura;
+        COMMIT;
+    END actualizar_cliente;
+END pkg_facturas;
+
+
+-- 4.Paquete para manejar pagos
+CREATE OR REPLACE PACKAGE pkg_pagos AS
+    PROCEDURE registrar_pago(
+        p_id_factura NUMBER,
+        p_total NUMBER
+    );
+    
+    PROCEDURE verificar_pago(
+        p_id_pago NUMBER,
+        p_existe OUT NUMBER
+    );
+END pkg_pagos;
+
+-- Cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_pagos AS
+    PROCEDURE registrar_pago(
+        p_id_factura NUMBER, 
+        p_total NUMBER
+    ) AS
+    BEGIN
+        UPDATE facturas 
+        SET total = p_total 
+        WHERE id_factura = p_id_factura;
+        COMMIT;
+    END registrar_pago;
+    
+    PROCEDURE verificar_pago(p_id_factura NUMBER) AS
+    BEGIN
+        SELECT id_factura, total
+        FROM facturas
+        WHERE id_factura = p_id_factura;
+        
+    END verificar_pago;
+    
+END pkg_pagos;
+
+-- 5.Paquete para manejar pedidos
+CREATE OR REPLACE PACKAGE pkg_pedidos AS
+    PROCEDURE registrar_pedido (
+    p_id_pedido IN NUMBER,
+    p_id_cliente IN NUMBER
+);
+    
+PROCEDURE actualizar_estado_pedido (
+    p_id_pedido IN NUMBER,
+    p_estado IN VARCHAR2
+);
+
+PROCEDURE eliminar_pedido (
+    p_id_pedido IN NUMBER
+);
+END pkg_pedidos;
+
+CREATE OR REPLACE PACKAGE BODY pkg_pedidos AS
+    PROCEDURE registrar_pago(
+        p_id_factura NUMBER, 
+        p_total NUMBER
+    ) AS
+-- Procedimiento para registrar un pedido
+PROCEDURE registrar_pedido (
+    p_id_pedido IN NUMBER,
+    p_id_cliente IN NUMBER
+) AS
+BEGIN
+    INSERT INTO pedidos (id_pedido, id_cliente) 
+    VALUES (p_id_pedido, p_id_cliente);
+    COMMIT;
+END registrar_pedido;
+
+-- Procedimiento para actualizar el estado de un pedido
+ PROCEDURE actualizar_estado_pedido (
+    p_id_pedido IN NUMBER,
+    p_estado IN VARCHAR2
+) AS
+BEGIN
+    UPDATE pedidos 
+    SET estado = p_estado 
+    WHERE id_pedido = p_id_pedido;
+    COMMIT;
+END actualizar_estado_pedido;
+
+
+-- Procedimiento para eliminar un pedido
+PROCEDURE eliminar_pedido (
+    p_id_pedido IN NUMBER
+) AS
+BEGIN
+    DELETE FROM pedidos 
+    WHERE id_pedido = p_id_pedido;
+    COMMIT;
+    END eliminar_pedido;
+END pkg_pedidos;
+
+-- 6.Paquete para manejar usuarios
+CREATE OR REPLACE PACKAGE pkg_usuarios AS
+    PROCEDURE agregar_usuario(
+        p_id_usuario NUMBER,
+        p_nombre VARCHAR2
+        p_telefono number,
+        p_direccion varchar2(100),
+        p_email varchar2(100),
+        p_contraseña varchar2(100)
+    );
+    
+    PROCEDURE eliminar_usuario(p_id_usuario NUMBER);
+    
+    PROCEDURE actualizar_usuario(
+        p_id_usuario NUMBER,
+        p_nombre VARCHAR2,
+        p_telefono number,
+        p_direccion varchar2(100),
+        p_email varchar2(100),
+        p_contraseña varchar2(100)
+    );
+END pkg_clientes;
+
+CREATE OR REPLACE PACKAGE BODY pkg_usuarios AS
+
+    -- Procedimiento para agregar un usuario
+    PROCEDURE agregar_usuario(
+        p_id_usuario NUMBER,
+        p_nombre VARCHAR2,
+        p_telefono NUMBER,
+        p_direccion VARCHAR2(100),
+        p_email VARCHAR2(100),
+        p_contraseña VARCHAR2(100)
+    ) AS
+    BEGIN
+        INSERT INTO usuarios (id_usuario, nombre, telefono, direccion, email, contraseña)
+        VALUES (p_id_cliente, p_nombre, p_telefono, p_direccion, p_email, p_contraseña);
+        COMMIT;
+    END agregar_usuario;
+
+    -- Procedimiento para eliminar un usuario
+    PROCEDURE eliminar_usuario(p_id_usuario NUMBER) AS
+    BEGIN
+        DELETE FROM usuarios WHERE id_usuario = p_id_usuario;
+        COMMIT;
+    END eliminar_usuario;
+
+    -- Procedimiento para actualizar un usuario
+    PROCEDURE actualizar_usuario(
+        p_id_usuarioNUMBER,
+        p_nombre VARCHAR2,
+        p_telefono NUMBER,
+        p_direccion VARCHAR2(100),
+        p_email VARCHAR2(100),
+        p_contraseña VARCHAR2(100)
+    ) AS
+    BEGIN
+        UPDATE usuarios
+        SET nombre = p_nombre,
+            telefono = p_telefono,
+            direccion = p_direccion,
+            email = p_email,
+            contraseña = p_contraseña
+        WHERE id_usuario = p_id_usuario;
+        COMMIT;
+    END actualizar_usuario;
+
+END pkg_usuarios;
+
+-- 7.Paquete para manejar devoluciones
+
+-- Cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_devoluciones AS
+
+    -- Procedimiento para registrar una devolución
+    PROCEDURE registrar_devolucion(
+        p_id_devolucion NUMBER,
+        p_id_factura NUMBER,
+        p_id_producto NUMBER,
+        p_motivo VARCHAR2
+    ) AS
+    BEGIN
+        INSERT INTO Devoluciones (id_devolucion, id_factura, id_producto, motivo, fecha)
+        VALUES (p_id_devolucion, p_id_factura, p_id_producto, p_motivo, SYSDATE);
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Devolución registrada con ID: ' || p_id_devolucion);
+    END registrar_devolucion;
+
+
+    -- Procedimiento para eliminar una devolución
+    PROCEDURE eliminar_devolucion(p_id_devolucion NUMBER) AS
+    BEGIN
+        DELETE FROM Devoluciones WHERE id_devolucion = p_id_devolucion;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Devolución eliminada con ID: ' || p_id_devolucion);
+    END eliminar_devolucion;
+
+
+    -- Procedimiento para actualizar los datos de una devolución
+    PROCEDURE actualizar_devolucion(
+        p_id_devolucion NUMBER,
+        p_motivo VARCHAR2
+    ) AS
+    BEGIN
+        UPDATE Devoluciones
+        SET motivo = p_motivo
+        WHERE id_devolucion = p_id_devolucion;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Motivo actualizado para la devolución con ID: ' || p_id_devolucion);
+    END actualizar_devolucion;
+
+
+    -- Procedimiento para consultar una devolución por ID
+    PROCEDURE consultar_devolucion(
+        p_id_devolucion NUMBER
+    ) AS
+        v_id_factura NUMBER;
+        v_id_producto NUMBER;
+        v_motivo VARCHAR2(255);
+        v_fecha DATE;
+    BEGIN
+        SELECT id_factura, id_producto, motivo, fecha
+        INTO v_id_factura, v_id_producto, v_motivo, v_fecha
+        FROM Devoluciones
+        WHERE id_devolucion = p_id_devolucion;
+
+        DBMS_OUTPUT.PUT_LINE('ID Factura: ' || v_id_factura || ' | ID Producto: ' || v_id_producto);
+        DBMS_OUTPUT.PUT_LINE('Motivo: ' || v_motivo);
+        DBMS_OUTPUT.PUT_LINE('Fecha de Devolución: ' || TO_CHAR(v_fecha, 'YYYY-MM-DD HH24:MI:SS'));
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No se encontró la devolución con ID: ' || p_id_devolucion);
+    END consultar_devolucion;
+
+END pkg_devoluciones;
+
+-- 8.Paquete para manejar categorias
+CREATE OR REPLACE PACKAGE pkg_categorias AS
+
+    -- Procedimiento para registrar una nueva categoría
+    PROCEDURE registrar_categoria(
+        p_id_categoria NUMBER,
+        p_nombre VARCHAR2
+    );
+
+    -- Procedimiento para eliminar una categoría
+    PROCEDURE eliminar_categoria(p_id_categoria NUMBER);
+
+    -- Procedimiento para actualizar el nombre de una categoría
+    PROCEDURE actualizar_categoria(
+        p_id_categoria NUMBER,
+        p_nombre VARCHAR2
+    );
+
+    -- Procedimiento para consultar una categoría por ID
+    PROCEDURE consultar_categoria(
+        p_id_categoria NUMBER
+    );
+
+END pkg_categorias;
+
+-- Cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_categorias AS
+
+    -- Procedimiento para registrar una nueva categoría
+    PROCEDURE registrar_categoria(
+        p_id_categoria NUMBER,
+        p_nombre VARCHAR2
+    ) AS
+    BEGIN
+        INSERT INTO Categorias (id_categoria, nombre) 
+        VALUES (p_id_categoria, p_nombre);
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Categoría registrada con ID: ' || p_id_categoria);
+    END registrar_categoria;
+
+
+    -- Procedimiento para eliminar una categoría
+    PROCEDURE eliminar_categoria(p_id_categoria NUMBER) AS
+    BEGIN
+        DELETE FROM Categorias WHERE id_categoria = p_id_categoria;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Categoría eliminada con ID: ' || p_id_categoria);
+    END eliminar_categoria;
+
+
+    -- Procedimiento para actualizar el nombre de una categoría
+    PROCEDURE actualizar_categoria(
+        p_id_categoria NUMBER,
+        p_nombre VARCHAR2
+    ) AS
+    BEGIN
+        UPDATE Categorias 
+        SET nombre = p_nombre 
+        WHERE id_categoria = p_id_categoria;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Categoría actualizada con ID: ' || p_id_categoria);
+    END actualizar_categoria;
+
+
+    -- Procedimiento para consultar una categoría por ID
+    PROCEDURE consultar_categoria(
+        p_id_categoria NUMBER
+    ) AS
+        v_nombre VARCHAR2(100);
+    BEGIN
+        SELECT nombre INTO v_nombre
+        FROM Categorias
+        WHERE id_categoria = p_id_categoria;
+
+        DBMS_OUTPUT.PUT_LINE('Categoría ID: ' || p_id_categoria || ' | Nombre: ' || v_nombre);
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No se encontró la categoría con ID: ' || p_id_categoria);
+    END consultar_categoria;
+
+END pkg_categorias;
+/
+
+-- 9.Paquete para manejar categorias
+CREATE OR REPLACE PACKAGE pkg_proveedores AS
+
+    -- Procedimiento para registrar un nuevo proveedor
+    PROCEDURE registrar_proveedor(
+        p_id_proveedor NUMBER,
+        p_nombre VARCHAR2,
+        p_telefono NUMBER,
+        p_direccion VARCHAR2
+    );
+
+    -- Procedimiento para eliminar un proveedor
+    PROCEDURE eliminar_proveedor(p_id_proveedor NUMBER);
+
+    -- Procedimiento para actualizar la información de un proveedor
+    PROCEDURE actualizar_proveedor(
+        p_id_proveedor NUMBER,
+        p_nombre VARCHAR2,
+        p_telefono NUMBER,
+        p_direccion VARCHAR2
+    );
+
+    -- Procedimiento para consultar un proveedor por ID
+    PROCEDURE consultar_proveedor(
+        p_id_proveedor NUMBER
+    );
+
+END pkg_proveedores;
+
+-- Cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_proveedores AS
+
+    -- Procedimiento para registrar un nuevo proveedor
+    PROCEDURE registrar_proveedor(
+        p_id_proveedor NUMBER,
+        p_nombre VARCHAR2,
+        p_telefono NUMBER,
+        p_direccion VARCHAR2
+    ) AS
+    BEGIN
+        INSERT INTO Proovedores (id_proovedor, nombre, telefono, direccion) 
+        VALUES (p_id_proveedor, p_nombre, p_telefono, p_direccion);
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Proveedor registrado con ID: ' || p_id_proveedor);
+    END registrar_proveedor;
+
+
+    -- Procedimiento para eliminar un proveedor
+    PROCEDURE eliminar_proveedor(p_id_proveedor NUMBER) AS
+    BEGIN
+        DELETE FROM Proovedores WHERE id_proovedor = p_id_proveedor;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Proveedor eliminado con ID: ' || p_id_proveedor);
+    END eliminar_proveedor;
+
+
+    -- Procedimiento para actualizar la información de un proveedor
+    PROCEDURE actualizar_proveedor(
+        p_id_proveedor NUMBER,
+        p_nombre VARCHAR2,
+        p_telefono NUMBER,
+        p_direccion VARCHAR2
+    ) AS
+    BEGIN
+        UPDATE Proovedores 
+        SET nombre = p_nombre, telefono = p_telefono, direccion = p_direccion
+        WHERE id_proovedor = p_id_proveedor;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Proveedor actualizado con ID: ' || p_id_proveedor);
+    END actualizar_proveedor;
+
+
+    -- Procedimiento para consultar un proveedor por ID
+    PROCEDURE consultar_proveedor(
+        p_id_proveedor NUMBER
+    ) AS
+        v_nombre VARCHAR2(100);
+        v_telefono NUMBER;
+        v_direccion VARCHAR2(100);
+    BEGIN
+        SELECT nombre, telefono, direccion INTO v_nombre, v_telefono, v_direccion
+        FROM Proovedores
+        WHERE id_proovedor = p_id_proveedor;
+
+        DBMS_OUTPUT.PUT_LINE('Proveedor ID: ' || p_id_proveedor || 
+                             ' | Nombre: ' || v_nombre || 
+                             ' | Teléfono: ' || v_telefono || 
+                             ' | Dirección: ' || v_direccion);
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('No se encontró el proveedor con ID: ' || p_id_proveedor);
+    END consultar_proveedor;
+
+END pkg_proveedores;
+/
+-- 10.Paquete para manejar usarios rol
+CREATE OR REPLACE PACKAGE pkg_usuario_rol AS
+
+    -- Procedimiento para asignar un rol a un usuario
+    PROCEDURE asignar_rol(
+        p_id_usuario_rol NUMBER,
+        p_id_usuario NUMBER,
+        p_id_rol NUMBER
+    );
+
+    -- Procedimiento para eliminar un rol asignado a un usuario
+    PROCEDURE eliminar_rol_usuario(p_id_usuario_rol NUMBER);
+
+    -- Procedimiento para actualizar el rol de un usuario
+    PROCEDURE actualizar_rol_usuario(
+        p_id_usuario_rol NUMBER,
+        p_id_rol NUMBER
+    );
+
+    -- Procedimiento para consultar los roles de un usuario
+    PROCEDURE consultar_roles_usuario(
+        p_id_usuario NUMBER
+    );
+
+END pkg_usuario_rol;
+-- Cuerpo del paquete
+CREATE OR REPLACE PACKAGE BODY pkg_usuario_rol AS
+
+    -- Procedimiento para asignar un rol a un usuario
+    PROCEDURE asignar_rol(
+        p_id_usuario_rol NUMBER,
+        p_id_usuario NUMBER,
+        p_id_rol NUMBER
+    ) AS
+    BEGIN
+        INSERT INTO Usuario_Rol (id_Usuario_Rol, id_usuario, id_rol) 
+        VALUES (p_id_usuario_rol, p_id_usuario, p_id_rol);
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Rol asignado correctamente al usuario con ID: ' || p_id_usuario);
+    END asignar_rol;
+
+
+    -- Procedimiento para eliminar un rol asignado a un usuario
+    PROCEDURE eliminar_rol_usuario(p_id_usuario_rol NUMBER) AS
+    BEGIN
+        DELETE FROM Usuario_Rol WHERE id_Usuario_Rol = p_id_usuario_rol;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Rol eliminado correctamente con ID de asignación: ' || p_id_usuario_rol);
+    END eliminar_rol_usuario;
+
+
+    -- Procedimiento para actualizar el rol de un usuario
+    PROCEDURE actualizar_rol_usuario(
+        p_id_usuario_rol NUMBER,
+        p_id_rol NUMBER
+    ) AS
+    BEGIN
+        UPDATE Usuario_Rol 
+        SET id_rol = p_id_rol
+        WHERE id_Usuario_Rol = p_id_usuario_rol;
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Rol actualizado correctamente en la asignación ID: ' || p_id_usuario_rol);
+    END actualizar_rol_usuario;
+
+
+    -- Procedimiento para consultar los roles de un usuario
+    PROCEDURE consultar_roles_usuario(
+        p_id_usuario NUMBER
+    ) AS
+        CURSOR cur_roles IS
+            SELECT UR.id_Usuario_Rol, UR.id_rol, R.nombre
+            FROM Usuario_Rol UR
+            INNER JOIN Rol R ON UR.id_rol = R.id_rol
+            WHERE UR.id_usuario = p_id_usuario;
+        
+        v_id_usuario_rol NUMBER;
+        v_id_rol NUMBER;
+        v_nombre_rol VARCHAR2(100);
+    BEGIN
+        OPEN cur_roles;
+        LOOP
+            FETCH cur_roles INTO v_id_usuario_rol, v_id_rol, v_nombre_rol;
+            EXIT WHEN cur_roles%NOTFOUND;
+            DBMS_OUTPUT.PUT_LINE('ID Asignación: ' || v_id_usuario_rol || 
+                                 ' | ID Rol: ' || v_id_rol || 
+                                 ' | Nombre Rol: ' || v_nombre_rol);
+        END LOOP;
+        CLOSE cur_roles;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('El usuario con ID ' || p_id_usuario || ' no tiene roles asignados.');
+    END consultar_roles_usuario;
+
+END pkg_usuario_rol;
+
+
+
+-- ========================
+-- CURSORES
+-- ========================
+
+
+-- 1.Cursor para obtener productos con bajo stock
+DECLARE
+    CURSOR cur_productos_bajo_stock IS
+        SELECT id_producto, nombre, stock FROM productos WHERE stock < 10;
+    v_id_producto productos.id_producto%TYPE;
+    v_nombre productos.nombre%TYPE;
+    v_stock productos.stock%TYPE;
+BEGIN
+    OPEN cur_productos_bajo_stock;
+    LOOP
+        FETCH cur_productos_bajo_stock INTO v_id_producto, v_nombre, v_stock;
+        EXIT WHEN cur_productos_bajo_stock%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE('Producto: ' || v_nombre || ' - Stock: ' || v_stock);
+    END LOOP;
+    CLOSE cur_productos_bajo_stock;
+END;
+/
+
+
+-- 2.Cursor para obtener clientes frecuentes
+DECLARE
+    CURSOR cur_clientes_frecuentes IS
+        SELECT id_cliente, nombre FROM clientes
+        WHERE id_cliente IN (SELECT id_cliente FROM facturas GROUP BY id_cliente HAVING COUNT(*) > 5);
+    v_id_cliente clientes.id_cliente%TYPE;
+    v_nombre clientes.nombre%TYPE;
+BEGIN
+    OPEN cur_clientes_frecuentes;
+    LOOP
+        FETCH cur_clientes_frecuentes INTO v_id_cliente, v_nombre;
+        EXIT WHEN cur_clientes_frecuentes%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE('Cliente frecuente: ' || v_nombre);
+    END LOOP;
+    CLOSE cur_clientes_frecuentes;
+END;
+/
+-- 3.Cursor para obtener productos proximos a vencer
+
+DECLARE
+    CURSOR cur_productos_a_vencer IS
+        SELECT id_producto, nombre, categoria FROM productos
+        WHERE categoria = 'Próximo a vencer';
+
+    v_id_productos productos.id_producto%TYPE;
+    v_nombre productos.nombre%TYPE;
+    v_categoria productos.categoria%TYPE; 
+
+BEGIN
+    OPEN cur_productos_a_vencer;
+    LOOP
+        FETCH cur_productos_a_vencer INTO v_id_productos, v_nombre, v_categoria; 
+        EXIT WHEN cur_productos_a_vencer%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE('Producto a vencer: ' || v_nombre || ' | ID: ' || v_id_productos);
+    END LOOP;
+    CLOSE cur_productos_a_vencer;
+END;
+
+
+-- 4.Cursor para obtener productos agotados
+
+DECLARE
+    CURSOR cur_productos_agotados IS
+        SELECT id_producto, nombre, categoria FROM productos
+        WHERE categoria = 'Agotado';
+
+    v_id_productos productos.id_producto%TYPE;
+    v_nombre productos.nombre%TYPE;
+    v_categoria productos.categoria%TYPE;  
+
+BEGIN
+    OPEN cur_productos_agotados;
+    LOOP
+        FETCH cur_productos_agotados INTO v_id_productos, v_nombre, v_categoria; 
+        EXIT WHEN cur_productos_agotados%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE('Producto agotado: ' || v_nombre || ' | ID: ' || v_id_productos);
+    END LOOP;
+    CLOSE cur_productos_agotados;
+END;
+
+-- 5.Cursor para obtener productos disponible
+
+DECLARE
+    CURSOR cur_productos_disponible IS
+        SELECT id_producto, nombre, categoria FROM productos
+        WHERE categoria = 'Disponible';
+
+    v_id_productos productos.id_producto%TYPE;
+    v_nombre productos.nombre%TYPE;
+    v_categoria productos.categoria%TYPE;  
+
+BEGIN
+    OPEN cur_productos_disponible;
+    LOOP
+        FETCH cur_productos_disponible INTO v_id_productos, v_nombre, v_categoria; 
+        EXIT WHEN cur_productos_disponible%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE('Producto disponible: ' || v_nombre || ' | ID: ' || v_id_productos);
+    END LOOP;
+    CLOSE cur_productos_disponible;
+END;
+
+-- 6.Cursor para obtener proveedores
+
+DECLARE
+    CURSOR cur_proveedores IS
+        SELECT id_proveedor, nombre, contacto, direccion 
+        FROM proveedores;
+        
+
+    v_id_proveedor proveedores.id_proveedor%TYPE;
+    v_nombre proveedores.nombre%TYPE;
+    v_contacto proveedores.contacto%TYPE;  
+    v_direccion proveedores.direccion%TYPE;  
+
+
+BEGIN
+    OPEN cur_proveedores;
+    LOOP
+        FETCH cur_proveedores INTO v_id_proveedor, v_id_proveedor, v_contacto, v_direccion; 
+        EXIT WHEN cur_proveedores%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE('Proveedor: ' || v_nombre || ' | ID: ' || v_id_proveedor || 'Contacto: '|| v_contacto || 'Direccion: '||v_direccion);
+    END LOOP;
+    CLOSE cur_proveedores;
+END;
+
+-- 7.Cursor para obtener clientes
+
+DECLARE
+    CURSOR cur_clientes IS
+        SELECT id_cliente, nombre, cedula, telefono, email
+        FROM clientes;
+        
+
+    v_id_cliente clientes.id_proveedor%TYPE;
+    v_nombre clientes.nombre%TYPE;
+    v_cedula clientes.cedula%TYPE;  
+    v_telefono clientes.telefono%TYPE;  
+    v_email clientes.email%TYPE; 
+
+
+BEGIN
+    OPEN cur_clientes;
+    LOOP
+        FETCH cur_clientes INTO v_id_cliente, v_nombre, v_cedula, v_telefono, v_email; 
+        EXIT WHEN cur_clientes%NOTFOUND;
+        
+        DBMS_OUTPUT.PUT_LINE('ID : ' || v_id_cliente || '|| Nombre: ' || v_nombre ||'Cedula: '||v_cedula||
+                            'Telefono: '||v_telefono || 'Email: '||v_email);
+    END LOOP;
+    CLOSE cur_clientes;
+END;
+
+--8.Cursor que busca productos basado en su cantidad
+
+DECLARE
+    CURSOR cur_produ_cantidad(P_CANTIDAD PRODUCTOS.CANTIDAD%TYPE) IS
+    SELECT id_productos, nombre, precio, cantidad
+    FROM PRODUCTOS
+    WHERE CANTIDAD = P_CANTIDAD;
+    
+    v_id_productos PRODUCTOS.id_productos%TYPE;
+    v_nombre PRODUCTOS.nombre%TYPE;
+    v_precio PRODUCTOS.precio%TYPE;
+    v_cantidad PRODUCTOS.cantidad%TYPE;
+    
+BEGIN
+OPEN cur_produ_cantidad(10); --Cantidad del producto
+LOOP
+    FETCH cur_produ_cantidad INTO v_id_productos, v_nombre, v_precio, v_cantidad;
+    EXIT WHEN cur_produ_cantidad%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE ('ID Producto es: '|| v_id_productos ||' Nombre: ' || v_nombre ||' Precio: '|| V_salary ||' Cantidad: '|| v_cantidad );
+    END LOOP;}
+    CLOSE cur_produ_cantidad; 
+
+END;
+
+--9.Cursor que busca productos basado en su precio
+
+DECLARE
+    CURSOR cur_produ_precio(P_PRECIO PRODUCTOS.PRECIO%TYPE) IS
+    SELECT id_productos, nombre, precio, cantidad
+    FROM PRODUCTOS
+    WHERE PRECIO = P_CANTIDAD;
+    
+    v_id_productos PRODUCTOS.id_productos%TYPE;
+    v_nombre PRODUCTOS.nombre%TYPE;
+    v_precio PRODUCTOS.precio%TYPE;
+    v_cantidad PRODUCTOS.cantidad%TYPE;
+    
+BEGIN
+OPEN cur_produ_precio(1000); --Cantidad del producto
+LOOP
+    FETCH cur_produ_precio INTO v_id_productos, v_nombre, v_precio, v_cantidad;
+    EXIT WHEN cur_produ_precio%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE ('ID Producto es: '|| v_id_productos ||' Nombre: ' || v_nombre ||' Precio: '|| V_salary ||' Cantidad: '|| v_cantidad );
+    END LOOP;}
+    CLOSE cur_produ_precio; 
+
+END;
+
+-- 10.Cursor para obtener productos alto en stock
+DECLARE
+    CURSOR cur_productos_alto_stock IS
+        SELECT id_producto, nombre, stock FROM productos WHERE stock > 100;
+    v_id_producto productos.id_producto%TYPE;
+    v_nombre productos.nombre%TYPE;
+    v_stock productos.stock%TYPE;
+BEGIN
+    OPEN cur_productos_alto_stock;
+    LOOP
+        FETCH cur_productos_alto_stock INTO v_id_producto, v_nombre, v_stock;
+        EXIT WHEN cur_productos_alto_stock%NOTFOUND;
+        DBMS_OUTPUT.PUT_LINE('Producto: ' || v_nombre || ' - Stock: ' || v_stock);
+    END LOOP;
+    CLOSE cur_productos_alto_stock;
+END;
+
+
+-- 11.Cursos para buscar facturas con misma fecha
+DECLARE
+    CURSOR cur_facturas_misma_fecha(P_FECHA FACTURAS.FECHA%TYPE) IS
+        SELECT id_factura, fecha
+        FROM FACTURAS
+        WHERE FECHA = P_FECHA; 
+
+    -- Variables para almacenar los valores del cursor
+    V_id_factura FACTURAS.id_factura%TYPE;
+    V_fecha FACTURAS.fecha%TYPE;
+
+BEGIN
+    -- Declarar la fecha en el formato correcto
+    FOR I IN cur_facturas_misma_fecha(TO_DATE('2025-01-01', 'YYYY-MM-DD')) LOOP
+        -- Mostrar los datos obtenidos por el cursor
+        DBMS_OUTPUT.PUT_LINE ('ID Factura: ' || I.id_factura || ' Fecha: ' || TO_CHAR(I.fecha, 'YYYY-MM-DD'));
+    END LOOP;
+END;
+
+-- 12.Cursos para buscar usuarios
+
+DECLARE
+CURSOR cur_usuarios IS
+SELECT  id_usuario
+FROM USUARIOS 
+
+V_id_usuario USUARIOS.id_usuario_ID%TYPE;
+
+BEGIN
+OPEN cur_usuarios; 
+   LOOP 
+   FETCH cur_usuarios INTO V_EMPLOYEE_ID;
+   EXIT WHEN cur_usuarios%NOTFOUND;
+   DBMS_OUTPUT.PUT_LINE ('ID_Usuario es: '|| V_id_usuario);
+   END LOOP;
+   CLOSE cur_usuarios;
+END;
+
+-- 13.Cursor para buscar facturas con misma fecha y calcular el total vendido ese dia
+DECLARE
+    -- Cursor que obtiene las facturas de una fecha específica, incluyendo el total de cada una
+    CURSOR cur_facturas_misma_fecha(P_FECHA FACTURAS.FECHA%TYPE) IS
+        SELECT id_factura, fecha, total
+        FROM FACTURAS
+        WHERE FECHA = P_FECHA; 
+
+    -- Variable para almacenar el total vendido en la fecha
+    V_monto_total NUMBER := 0;  -- Inicializamos en 0
+
+BEGIN
+    -- Iteramos sobre las facturas de la fecha dada
+    FOR I IN cur_facturas_misma_fecha(TO_DATE('2025-01-01', 'YYYY-MM-DD')) LOOP
+        V_monto_total := V_monto_total + I.total;
+    END LOOP;
+
+    -- Mostramos el total vendido en la fecha
+    DBMS_OUTPUT.PUT_LINE ('El total vendido fue: ' || V_monto_total);
+
+END;
+
+-- 14.Cursor para saber cantidad de facturas que un cliente posee
+DECLARE
+    -- Cursor que obtiene todas las facturas de un cliente específico
+    CURSOR cur_clientes_facturas(P_CLIENTE CLIENTES.id_cliente%TYPE) IS
+        SELECT F.id_factura
+        FROM FACTURAS F
+        WHERE F.id_cliente = P_CLIENTE;  -- Se filtra por cliente
+
+    -- Variable para contar el número de facturas del cliente
+    V_cantidad_facturas NUMBER := 0;
+
+BEGIN
+    -- Recorremos todas las facturas del cliente
+    FOR I IN cur_clientes_facturas(12) LOOP
+        V_cantidad_facturas := V_cantidad_facturas + 1;
+    END LOOP;
+
+    -- Mostramos el total de facturas del cliente
+    DBMS_OUTPUT.PUT_LINE('El total de facturas que el cliente posee es: ' || V_cantidad_facturas);
+
+END;
+
+-- 15.Cursor mostrar que productos se devolvieron segun la fecha
+
+DECLARE
+    -- Cursor para obtener los productos devueltos en una fecha específica
+    CURSOR cur_devol_fecha(P_FECHA DEVOLUCIONES.FECHA%TYPE) IS
+        SELECT D.id_devolucion, P.id_producto, P.nombre, P.precio
+        FROM PRODUCTOS P
+        INNER JOIN DEVOLUCIONES D
+        ON P.id_producto = D.id_producto
+        WHERE D.FECHA = P_FECHA;  
+
+BEGIN
+    -- Recorrer los productos devueltos en la fecha dada
+    FOR I IN cur_devol_fecha(TO_DATE('2025-01-01', 'YYYY-MM-DD')) LOOP
+        DBMS_OUTPUT.PUT_LINE('Nombre del producto devuelto: ' || I.nombre || ' - Precio: ' || I.precio);
+    END LOOP;
+END;
+/
+
