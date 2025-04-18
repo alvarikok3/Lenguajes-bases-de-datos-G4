@@ -1,0 +1,665 @@
+--=Creacion de Tablas=---
+
+CREATE TABLE Categorias(
+    id_categoria NUMBER PRIMARY KEY,
+    nombre VARCHAR2(100) NOT NULL);
+    
+CREATE TABLE Proovedores(
+    id_proovedor NUMBER PRIMARY KEY,
+    nombre varchar2(100) not null,
+    telefono number not null,
+    direccion VARCHAR2 (100) NOT NULL);
+
+
+
+CREATE TABLE Productos (
+    id_producto NUMBER PRIMARY KEY,
+    id_categoria number,
+    id_proveedor number,
+    nombre VARCHAR2(100) NOT NULL,
+    categoria VARCHAR2(50),
+    precio NUMBER(10,2) NOT NULL,
+    stock NUMBER(5) NOT NULL,
+    estado VARCHAR2(20) CHECK (estado IN ('Disponible', 'Agotado', 'Próximo a vencer')),
+    constraint fk_id_categoria foreign key (id_categoria) references Categorias(id_categoria),
+    constraint fk_id_proveedor foreign key (id_proveedor) references Proovedores(id_proovedor)
+    );
+    
+CREATE TABLE Usuario(
+    id_usuario NUMBER PRIMARY KEY,
+    nombre varchar2(100),
+    telefono number,
+    direccion varchar2(100),
+    email varchar2(100),
+    contraseña varchar2(100));
+
+CREATE TABLE Rol(
+    id_rol number primary key,
+    nombre varchar2(100));
+
+CREATE TABLE Usuario_Rol(
+    id_Usuario_Rol NUMBER primary key,
+    id_usuario number,
+    id_rol number,
+    constraint fk_id_usuario foreign key (id_usuario) references Usuario(id_usuario),
+    constraint fk_id_rol foreign key (id_rol) references Rol(id_rol));
+
+CREATE TABLE Facturas (
+    id_factura NUMBER PRIMARY KEY,
+    fecha DATE DEFAULT SYSDATE,
+    total NUMBER(10,2),
+    id_usuario NUMBER,
+    constraint fk_id_usuariofactura foreign key (id_usuario) references Usuario(id_usuario)
+);
+
+CREATE TABLE Detalles_Facturas(
+    id_detallesFactura NUMBER PRIMARY KEY,
+    id_factura NUMBER,
+    id_producto number,
+    cantidad number not null,
+    subtotal number not null,
+    constraint fk_id_dfactura foreign key (id_factura) references Facturas(id_factura),
+    constraint fk_id_dproducto foreign key (id_producto) references Productos(id_producto));
+
+-- Tabla de devoluciones
+CREATE TABLE Devoluciones (
+    id_devolucion NUMBER PRIMARY KEY,
+    id_factura NUMBER,
+    id_producto Number,
+    motivo VARCHAR2(255),
+    fecha DATE DEFAULT SYSDATE,
+    FOREIGN KEY (id_factura) REFERENCES facturas(id_factura),
+    constraint fk_id_devproducto foreign key (id_producto) references Productos(id_producto)
+);
+
+
+-- Vistas
+-- 1. Vista de productos con su categoría y proveedor
+CREATE OR REPLACE VIEW vista_productos_detalle AS
+SELECT 
+    p.id_producto,
+    p.nombre AS nombre_producto,
+    c.nombre AS categoria,
+    pr.nombre AS proveedor,
+    p.precio,
+    p.stock,
+    p.estado
+FROM productos p
+JOIN categorias c ON p.id_categoria = c.id_categoria
+JOIN proovedores pr ON p.id_proveedor = pr.id_proovedor;
+
+-- 2. Vista de facturas con información del usuario
+CREATE OR REPLACE VIEW vista_facturas_usuario AS
+SELECT 
+    f.id_factura,
+    f.fecha,
+    f.total,
+    u.nombre AS nombre_usuario,
+    u.email
+FROM facturas f
+JOIN usuario u ON f.id_usuario = u.id_usuario;
+
+-- 3. Vista de detalles de factura con nombre de producto y subtotal
+CREATE OR REPLACE VIEW vista_detalles_factura AS
+SELECT 
+    df.id_detallesFactura,
+    f.id_factura,
+    p.nombre AS producto,
+    df.cantidad,
+    df.subtotal
+FROM detalles_facturas df
+JOIN productos p ON df.id_producto = p.id_producto
+JOIN facturas f ON df.id_factura = f.id_factura;
+
+-- 4. Vista de devoluciones con información de producto y motivo
+CREATE OR REPLACE VIEW vista_devoluciones_producto AS
+SELECT 
+    d.id_devolucion,
+    d.id_factura,
+    p.nombre AS producto,
+    d.motivo,
+    d.fecha
+FROM devoluciones d
+JOIN productos p ON d.id_producto = p.id_producto;
+
+-- 5. Vista de usuarios y su rol
+CREATE OR REPLACE VIEW vista_usuarios_roles AS
+SELECT 
+    u.id_usuario,
+    u.nombre AS nombre_usuario,
+    r.nombre AS rol
+FROM usuario u
+JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
+JOIN rol r ON ur.id_rol = r.id_rol;
+
+-- 6. Vista de productos disponibles
+CREATE OR REPLACE VIEW vista_productos_disponibles AS
+SELECT * 
+FROM productos
+WHERE estado = 'Disponible';
+
+-- 7. Vista de stock bajo (menos de 10 unidades)
+CREATE OR REPLACE VIEW vista_stock_bajo AS
+SELECT * 
+FROM productos
+WHERE stock < 10;
+
+-- 8. Vista de resumen de facturación por usuario
+CREATE OR REPLACE VIEW vista_total_por_usuario AS
+SELECT 
+    u.id_usuario,
+    u.nombre,
+    SUM(f.total) AS total_facturado
+FROM usuario u
+JOIN facturas f ON u.id_usuario = f.id_usuario
+GROUP BY u.id_usuario, u.nombre;
+
+-- 9. Vista de productos por categoría
+CREATE OR REPLACE VIEW vista_productos_categoria AS
+SELECT 
+    c.nombre AS categoria,
+    COUNT(p.id_producto) AS cantidad_productos
+FROM categorias c
+JOIN productos p ON c.id_categoria = p.id_categoria
+GROUP BY c.nombre;
+
+-- 10. Vista de devoluciones por fecha
+CREATE OR REPLACE VIEW vista_devoluciones_fecha AS
+SELECT 
+    TO_CHAR(fecha, 'YYYY-MM-DD') AS fecha,
+    COUNT(*) AS cantidad_devoluciones
+FROM devoluciones
+GROUP BY TO_CHAR(fecha, 'YYYY-MM-DD');
+
+
+
+-- Secuencias para los id autoincrementales
+CREATE SEQUENCE categorias_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE proovedores_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE productos_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE usuario_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE rol_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE usuario_rol_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE factura_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE detallesfactura_seq START WITH 1 INCREMENT BY 1;
+CREATE SEQUENCE devolucion_seq START WITH 1 INCREMENT BY 1;
+
+-- procedimientos I
+-- 1. Insertar una nueva categoría
+CREATE OR REPLACE PROCEDURE insertar_categoria(
+    p_nombre IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Categorias(id_categoria, nombre)
+    VALUES (categorias_seq.NEXTVAL, p_nombre);
+END;
+/
+
+-- 2. Insertar un proveedor
+CREATE OR REPLACE PROCEDURE insertar_proveedor(
+    p_nombre IN VARCHAR2,
+    p_telefono IN NUMBER,
+    p_direccion IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Proovedores(id_proovedor, nombre, telefono, direccion)
+    VALUES (proovedores_seq.NEXTVAL, p_nombre, p_telefono, p_direccion);
+END;
+/
+
+-- 3. Insertar un producto
+CREATE OR REPLACE PROCEDURE insertar_producto(
+    p_id_categoria IN NUMBER,
+    p_id_proveedor IN NUMBER,
+    p_nombre IN VARCHAR2,
+    p_categoria IN VARCHAR2,
+    p_precio IN NUMBER,
+    p_stock IN NUMBER,
+    p_estado IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Productos(id_producto, id_categoria, id_proveedor, nombre, categoria, precio, stock, estado)
+    VALUES (productos_seq.NEXTVAL, p_id_categoria, p_id_proveedor, p_nombre, p_categoria, p_precio, p_stock, p_estado);
+END;
+/
+
+-- 4. Insertar un usuario
+CREATE OR REPLACE PROCEDURE insertar_usuario(
+    p_nombre IN VARCHAR2,
+    p_telefono IN NUMBER,
+    p_direccion IN VARCHAR2,
+    p_email IN VARCHAR2,
+    p_contraseña IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Usuario(id_usuario, nombre, telefono, direccion, email, contraseña)
+    VALUES (usuario_seq.NEXTVAL, p_nombre, p_telefono, p_direccion, p_email, p_contraseña);
+END;
+/
+
+-- 5. Insertar un rol
+CREATE OR REPLACE PROCEDURE insertar_rol(
+    p_nombre IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Rol(id_rol, nombre)
+    VALUES (rol_seq.NEXTVAL, p_nombre);
+END;
+/
+
+-- 6. Insertar un usuario_rol
+CREATE OR REPLACE PROCEDURE insertar_usuario_rol(
+    p_id_usuario IN NUMBER,
+    p_id_rol IN NUMBER
+) AS
+BEGIN
+    INSERT INTO Usuario_Rol(id_usuario_rol, id_usuario, id_rol)
+    VALUES (usuario_rol_seq.NEXTVAL, p_id_usuario, p_id_rol);
+END;
+/
+
+-- 7. Insertar una factura
+CREATE OR REPLACE PROCEDURE insertar_factura(
+    p_total IN NUMBER,
+    p_id_usuario IN NUMBER
+) AS
+BEGIN
+    INSERT INTO Facturas(id_factura, fecha, total, id_usuario)
+    VALUES (factura_seq.NEXTVAL, SYSDATE, p_total, p_id_usuario);
+END;
+/
+
+--procedimientos A
+-- 8. Actualizar stock de producto
+CREATE OR REPLACE PROCEDURE actualizar_stock(
+    p_id_producto IN NUMBER,
+    p_nuevo_stock IN NUMBER
+) AS
+BEGIN
+    UPDATE Productos
+    SET stock = p_nuevo_stock
+    WHERE id_producto = p_id_producto;
+END;
+/
+
+-- 9. Actualizar estado de producto
+CREATE OR REPLACE PROCEDURE actualizar_estado_producto(
+    p_id_producto IN NUMBER,
+    p_estado IN VARCHAR2
+) AS
+BEGIN
+    UPDATE Productos
+    SET estado = p_estado
+    WHERE id_producto = p_id_producto;
+END;
+/
+
+-- 10. Actualizar dirección de usuario
+CREATE OR REPLACE PROCEDURE actualizar_direccion_usuario(
+    p_id_usuario IN NUMBER,
+    p_nueva_direccion IN VARCHAR2
+) AS
+BEGIN
+    UPDATE Usuario
+    SET direccion = p_nueva_direccion
+    WHERE id_usuario = p_id_usuario;
+END;
+/
+
+-- 11. Actualizar precio de producto
+CREATE OR REPLACE PROCEDURE actualizar_precio_producto(
+    p_id_producto IN NUMBER,
+    p_nuevo_precio IN NUMBER
+) AS
+BEGIN
+    UPDATE Productos
+    SET precio = p_nuevo_precio
+    WHERE id_producto = p_id_producto;
+END;
+/
+
+-- 12. Actualizar teléfono de proveedor
+CREATE OR REPLACE PROCEDURE actualizar_telefono_proveedor(
+    p_id_proveedor IN NUMBER,
+    p_telefono IN NUMBER
+) AS
+BEGIN
+    UPDATE Proovedores
+    SET telefono = p_telefono
+    WHERE id_proovedor = p_id_proveedor;
+END;
+/
+
+--procedimientos E
+-- 13. Eliminar producto
+CREATE OR REPLACE PROCEDURE eliminar_producto(
+    p_id_producto IN NUMBER
+) AS
+BEGIN
+    DELETE FROM Productos WHERE id_producto = p_id_producto;
+END;
+/
+
+-- 14. Eliminar usuario
+CREATE OR REPLACE PROCEDURE eliminar_usuario(
+    p_id_usuario IN NUMBER
+) AS
+BEGIN
+    DELETE FROM Usuario WHERE id_usuario = p_id_usuario;
+END;
+/
+
+-- 15. Eliminar factura
+CREATE OR REPLACE PROCEDURE eliminar_factura(
+    p_id_factura IN NUMBER
+) AS
+BEGIN
+    DELETE FROM Facturas WHERE id_factura = p_id_factura;
+END;
+/
+
+-- 16. Eliminar categoría
+CREATE OR REPLACE PROCEDURE eliminar_categoria(
+    p_id_categoria IN NUMBER
+) AS
+BEGIN
+    DELETE FROM Categorias WHERE id_categoria = p_id_categoria;
+END;
+/
+
+-- 17. Eliminar proveedor
+CREATE OR REPLACE PROCEDURE eliminar_proveedor(
+    p_id_proveedor IN NUMBER
+) AS
+BEGIN
+    DELETE FROM Proovedores WHERE id_proovedor = p_id_proveedor;
+END;
+/
+
+--procedimientos C
+-- 18. Consultar todos los productos
+CREATE OR REPLACE PROCEDURE listar_productos IS
+BEGIN
+    FOR r IN (SELECT * FROM Productos) LOOP
+        DBMS_OUTPUT.PUT_LINE('Producto: ' || r.nombre || ', Precio: ' || r.precio);
+    END LOOP;
+END;
+/
+
+-- 19. Consultar productos por categoría
+CREATE OR REPLACE PROCEDURE productos_por_categoria(
+    p_id_categoria IN NUMBER
+) IS
+BEGIN
+    FOR r IN (SELECT * FROM Productos WHERE id_categoria = p_id_categoria) LOOP
+        DBMS_OUTPUT.PUT_LINE('Producto: ' || r.nombre);
+    END LOOP;
+END;
+/
+
+-- 20. Consultar facturas por usuario
+CREATE OR REPLACE PROCEDURE facturas_por_usuario(
+    p_id_usuario IN NUMBER
+) IS
+BEGIN
+    FOR r IN (SELECT * FROM Facturas WHERE id_usuario = p_id_usuario) LOOP
+        DBMS_OUTPUT.PUT_LINE('Factura ID: ' || r.id_factura || ', Total: ' || r.total);
+    END LOOP;
+END;
+/
+
+-- 21. Consultar devoluciones por producto
+CREATE OR REPLACE PROCEDURE devoluciones_producto(
+    p_id_producto IN NUMBER
+) IS
+BEGIN
+    FOR r IN (SELECT * FROM Devoluciones WHERE id_producto = p_id_producto) LOOP
+        DBMS_OUTPUT.PUT_LINE('Devolución ID: ' || r.id_devolucion || ', Motivo: ' || r.motivo);
+    END LOOP;
+END;
+/
+
+-- 22. Consultar usuarios con rol
+CREATE OR REPLACE PROCEDURE listar_usuarios_roles IS
+BEGIN
+    FOR r IN (
+        SELECT u.nombre AS usuario, r2.nombre AS rol
+        FROM Usuario u
+        JOIN Usuario_Rol ur ON u.id_usuario = ur.id_usuario
+        JOIN Rol r2 ON r2.id_rol = ur.id_rol
+    ) LOOP
+        DBMS_OUTPUT.PUT_LINE('Usuario: ' || r.usuario || ' - Rol: ' || r.rol);
+    END LOOP;
+END;
+/
+
+-- 23. Consultar stock bajo
+CREATE OR REPLACE PROCEDURE productos_stock_bajo IS
+BEGIN
+    FOR r IN (SELECT * FROM Productos WHERE stock <= 5) LOOP
+        DBMS_OUTPUT.PUT_LINE('Producto: ' || r.nombre || ' - Stock: ' || r.stock);
+    END LOOP;
+END;
+/
+
+-- 24. Consultar productos disponibles
+CREATE OR REPLACE PROCEDURE productos_disponibles IS
+BEGIN
+    FOR r IN (SELECT * FROM Productos WHERE estado = 'Disponible') LOOP
+        DBMS_OUTPUT.PUT_LINE('Producto: ' || r.nombre);
+    END LOOP;
+END;
+/
+
+-- 25. Consultar proveedores
+CREATE OR REPLACE PROCEDURE listar_proveedores IS
+BEGIN
+    FOR r IN (SELECT * FROM Proovedores) LOOP
+        DBMS_OUTPUT.PUT_LINE('Proveedor: ' || r.nombre || ' - Teléfono: ' || r.telefono);
+    END LOOP;
+END;
+/
+
+
+--Funciones
+--obetener el nombre por categoria id
+CREATE OR REPLACE FUNCTION obtener_nombre_categoria(p_id_categoria NUMBER)
+RETURN VARCHAR2 IS
+  v_nombre VARCHAR2(100);
+BEGIN
+  SELECT nombre INTO v_nombre
+  FROM categorias
+  WHERE id_categoria = p_id_categoria;
+
+  RETURN v_nombre;
+END;
+/
+
+--obetener stock del producto 
+CREATE OR REPLACE FUNCTION obtener_stock_producto(p_id_producto NUMBER)
+RETURN NUMBER IS
+  v_stock NUMBER;
+BEGIN
+  SELECT stock INTO v_stock
+  FROM productos
+  WHERE id_producto = p_id_producto;
+
+  RETURN v_stock;
+END;
+/
+
+--Calcular total de una factura por id
+CREATE OR REPLACE FUNCTION calcular_total_factura(p_id_factura NUMBER)
+RETURN NUMBER IS
+  v_total NUMBER;
+BEGIN
+  SELECT SUM(subtotal)
+  INTO v_total
+  FROM detalles_facturas
+  WHERE id_factura = p_id_factura;
+
+  RETURN NVL(v_total, 0);
+END;
+/
+
+--obtener email de un suario
+CREATE OR REPLACE FUNCTION obtener_email_usuario(p_id_usuario NUMBER)
+RETURN VARCHAR2 IS
+  v_email VARCHAR2(100);
+BEGIN
+  SELECT email INTO v_email
+  FROM usuario
+  WHERE id_usuario = p_id_usuario;
+
+  RETURN v_email;
+END;
+/
+
+
+--obtener fecha de una factura
+CREATE OR REPLACE FUNCTION obtener_fecha_factura(p_id_factura NUMBER)
+RETURN DATE IS
+  v_fecha DATE;
+BEGIN
+  SELECT fecha INTO v_fecha
+  FROM facturas
+  WHERE id_factura = p_id_factura;
+
+  RETURN v_fecha;
+END;
+/
+
+
+-- obtener estado del producto
+CREATE OR REPLACE FUNCTION obtener_estado_producto(p_id_producto NUMBER)
+RETURN VARCHAR2 IS
+  v_estado VARCHAR2(20);
+BEGIN
+  SELECT estado INTO v_estado
+  FROM productos
+  WHERE id_producto = p_id_producto;
+
+  RETURN v_estado;
+END;
+/
+
+
+--contar productos por categoria
+CREATE OR REPLACE FUNCTION contar_productos_categoria(p_id_categoria NUMBER)
+RETURN NUMBER IS
+  v_cantidad NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_cantidad
+  FROM productos
+  WHERE id_categoria = p_id_categoria;
+
+  RETURN v_cantidad;
+END;
+/
+
+--calcular promedio de precios x categoria
+CREATE OR REPLACE FUNCTION promedio_precio_categoria(p_id_categoria NUMBER)
+RETURN NUMBER IS
+  v_promedio NUMBER;
+BEGIN
+  SELECT AVG(precio) INTO v_promedio
+  FROM productos
+  WHERE id_categoria = p_id_categoria;
+
+  RETURN NVL(v_promedio, 0);
+END;
+/
+
+--verifica si el usuario tien un rol especifico
+CREATE OR REPLACE FUNCTION usuario_tiene_rol(p_id_usuario NUMBER, p_id_rol NUMBER)
+RETURN BOOLEAN IS
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+  FROM usuario_rol
+  WHERE id_usuario = p_id_usuario AND id_rol = p_id_rol;
+
+  RETURN v_count > 0;
+END;
+/
+
+--obtener nombre del proveedor por id 
+CREATE OR REPLACE FUNCTION obtener_nombre_proveedor(p_id_proveedor NUMBER)
+RETURN VARCHAR2 IS
+  v_nombre VARCHAR2(100);
+BEGIN
+  SELECT nombre INTO v_nombre
+  FROM proovedores
+  WHERE id_proovedor = p_id_proveedor;
+
+  RETURN v_nombre;
+END;
+/
+
+--obtener nombre del producto
+CREATE OR REPLACE FUNCTION obtener_nombre_producto(p_id_producto NUMBER)
+RETURN VARCHAR2 IS
+  v_nombre VARCHAR2(100);
+BEGIN
+  SELECT nombre INTO v_nombre
+  FROM productos
+  WHERE id_producto = p_id_producto;
+
+  RETURN v_nombre;
+END;
+/
+
+
+--verificar si existe un email
+CREATE OR REPLACE FUNCTION existe_email(p_email VARCHAR2)
+RETURN BOOLEAN IS
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+  FROM usuario
+  WHERE email = p_email;
+
+  RETURN v_count > 0;
+END;
+/
+
+--Obtener cantidad de devoluciones por producto
+CREATE OR REPLACE FUNCTION cantidad_devoluciones_producto(p_id_producto NUMBER)
+RETURN NUMBER IS
+  v_total NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_total
+  FROM devoluciones
+  WHERE id_producto = p_id_producto;
+
+  RETURN v_total;
+END;
+/
+
+-- Obtener numero de productos en una factura
+CREATE OR REPLACE FUNCTION productos_en_factura(p_id_factura NUMBER)
+RETURN NUMBER IS
+  v_count NUMBER;
+BEGIN
+  SELECT COUNT(*) INTO v_count
+  FROM detalles_facturas
+  WHERE id_factura = p_id_factura;
+
+  RETURN v_count;
+END;
+/
+
+--obetener id del rol de un usuario
+CREATE OR REPLACE FUNCTION obtener_rol_usuario(p_id_usuario NUMBER)
+RETURN NUMBER IS
+  v_id_rol NUMBER;
+BEGIN
+  SELECT id_rol INTO v_id_rol
+  FROM usuario_rol
+  WHERE id_usuario = p_id_usuario
+  FETCH FIRST ROW ONLY;
+
+  RETURN v_id_rol;
+END;
+/
+
