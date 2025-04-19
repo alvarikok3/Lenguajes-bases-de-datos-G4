@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+    <head>
+        <meta charset="UTF-8" />
+        <title>Productos - Tienda Conejo</title>
+        <link th:href="@{/webjars/bootstrap/css/bootstrap.min.css}" rel="stylesheet" />
+        <link th:href="@{/webjars/font-awesome/css/all.css}" rel="stylesheet" />
+        <style>
+            .admin-section {
+                margin-top: 30px;
+            }
+            .admin-card {
+                text-align: center;
+                padding: 20px;
+                border: 1px solid #ddd;
+                border-radius: 10px;
+                transition: transform 0.2s;
+                background-color: #d1f7ff;
+            }
+            .admin-card:hover {
+                transform: scale(1.05);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+            .admin-card i {
+                font-size: 40px;
+                margin-bottom: 15px;
+                color: #0D6EFD;
+            }
+        </style>
+    </head>
+    <body>
+        <header th:replace="~{layout/plantilla :: header}"/>
+
+        <div class="container admin-section">
+            <div class="row">
+                <div class="col-12 text-center mb-4">
+                    <h1>Gestione todas las opciones referentes a productos.</h1>
+                </div>
+            </div>
+            <div class="row">
+                <!--Tarjeta de Categorías -->
+                <div class="col-md-4">
+                    <div class="admin-card">
+                        <i class="fas fa-tags"></i>
+                        <h4>Categorías</h4>
+                        <p>Gestione las categorías de productos.</p>
+                        <a href="" class="btn btn-info">Administrar</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script th:src="@{/webjars/jquery/jquery.min.js}"></script>
+        <script th:src="@{/webjars/bootstrap/js/bootstrap.min.js}"></script>
+
+        <footer th:replace="~{layout/plantilla :: footer}"/>
+    </body>
+</html>
