@@ -1,0 +1,48 @@
+--insertar detalle factura
+CREATE OR REPLACE PROCEDURE insertar_detalle_factura(
+    p_id_factura IN NUMBER,
+    p_id_producto IN NUMBER,
+    p_cantidad IN NUMBER,
+    p_subtotal IN NUMBER
+) AS
+BEGIN
+    INSERT INTO Detalles_Facturas(
+        id_detallesFactura,
+        id_factura,
+        id_producto,
+        cantidad,
+        subtotal
+    )
+    VALUES (
+        detallesfactura_seq.NEXTVAL,
+        p_id_factura,
+        p_id_producto,
+        p_cantidad,
+        p_subtotal
+    );
+END;
+/
+
+
+-- insertar devolucion
+CREATE OR REPLACE PROCEDURE insertar_devolucion(
+    p_id_factura IN NUMBER,
+    p_id_producto IN NUMBER,
+    p_motivo IN VARCHAR2
+) AS
+BEGIN
+    INSERT INTO Devoluciones(
+        id_devolucion,
+        id_factura,
+        id_producto,
+        motivo
+    )
+    VALUES (
+        devolucion_seq.NEXTVAL,
+        p_id_factura,
+        p_id_producto,
+        p_motivo
+    );
+END;
+/
+
