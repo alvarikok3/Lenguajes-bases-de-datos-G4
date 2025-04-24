@@ -1,0 +1,1075 @@
+---10 paquetes
+CREATE OR REPLACE PACKAGE pkg_productos AS
+  PROCEDURE actualizar_stock(p_id_producto NUMBER, p_nuevo_stock NUMBER);
+  PROCEDURE actualizar_estado(p_id_producto NUMBER, p_estado VARCHAR2);
+  FUNCTION obtener_stock(p_id_producto NUMBER) RETURN NUMBER;
+  FUNCTION obtener_estado(p_id_producto NUMBER) RETURN VARCHAR2;
+  FUNCTION obtener_nombre(p_id_producto NUMBER) RETURN VARCHAR2;
+END pkg_productos;
+/
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_productos AS
+
+  PROCEDURE actualizar_stock(p_id_producto NUMBER, p_nuevo_stock NUMBER) IS
+  BEGIN
+    UPDATE productos
+    SET stock = p_nuevo_stock
+    WHERE id_producto = p_id_producto;
+  END actualizar_stock;
+
+  PROCEDURE actualizar_estado(p_id_producto NUMBER, p_estado VARCHAR2) IS
+  BEGIN
+    UPDATE productos
+    SET estado = p_estado
+    WHERE id_producto = p_id_producto;
+  END actualizar_estado;
+
+  FUNCTION obtener_stock(p_id_producto NUMBER) RETURN NUMBER IS
+    v_stock NUMBER;
+  BEGIN
+    SELECT stock INTO v_stock
+    FROM productos
+    WHERE id_producto = p_id_producto;
+    RETURN v_stock;
+  END obtener_stock;
+
+  FUNCTION obtener_estado(p_id_producto NUMBER) RETURN VARCHAR2 IS
+    v_estado VARCHAR2(20);
+  BEGIN
+    SELECT estado INTO v_estado
+    FROM productos
+    WHERE id_producto = p_id_producto;
+    RETURN v_estado;
+  END obtener_estado;
+
+  FUNCTION obtener_nombre(p_id_producto NUMBER) RETURN VARCHAR2 IS
+    v_nombre VARCHAR2(100);
+  BEGIN
+    SELECT nombre INTO v_nombre
+    FROM productos
+    WHERE id_producto = p_id_producto;
+    RETURN v_nombre;
+  END obtener_nombre;
+
+END pkg_productos;
+/
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_facturas AS
+  PROCEDURE insertar_factura(p_total NUMBER, p_id_usuario NUMBER);
+  FUNCTION calcular_total(p_id_factura NUMBER) RETURN NUMBER;
+  FUNCTION obtener_fecha(p_id_factura NUMBER) RETURN DATE;
+  FUNCTION productos_en_factura(p_id_factura NUMBER) RETURN NUMBER;
+END pkg_facturas;
+/
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_facturas AS
+
+  PROCEDURE insertar_factura(p_total NUMBER, p_id_usuario NUMBER) IS
+  BEGIN
+    INSERT INTO facturas(id_factura, fecha, total, id_usuario)
+    VALUES (factura_seq.NEXTVAL, SYSDATE, p_total, p_id_usuario);
+  END insertar_factura;
+
+  FUNCTION calcular_total(p_id_factura NUMBER) RETURN NUMBER IS
+    v_total NUMBER;
+  BEGIN
+    SELECT SUM(subtotal)
+    INTO v_total
+    FROM detalles_facturas
+    WHERE id_factura = p_id_factura;
+
+    RETURN NVL(v_total, 0);
+  END calcular_total;
+
+  FUNCTION obtener_fecha(p_id_factura NUMBER) RETURN DATE IS
+    v_fecha DATE;
+  BEGIN
+    SELECT fecha INTO v_fecha
+    FROM facturas
+    WHERE id_factura = p_id_factura;
+
+    RETURN v_fecha;
+  END obtener_fecha;
+
+  FUNCTION productos_en_factura(p_id_factura NUMBER) RETURN NUMBER IS
+    v_count NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM detalles_facturas
+    WHERE id_factura = p_id_factura;
+
+    RETURN v_count;
+  END productos_en_factura;
+
+END pkg_facturas;
+/
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_devoluciones AS
+  PROCEDURE insertar_devolucion(p_id_factura NUMBER, p_id_producto NUMBER, p_motivo VARCHAR2);
+  FUNCTION obtener_total_devoluciones(p_id_producto NUMBER) RETURN NUMBER;
+  FUNCTION obtener_motivo(p_id_devolucion NUMBER) RETURN VARCHAR2;
+END pkg_devoluciones;
+/
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_devoluciones AS
+
+  PROCEDURE insertar_devolucion(p_id_factura NUMBER, p_id_producto NUMBER, p_motivo VARCHAR2) IS
+  BEGIN
+    INSERT INTO devoluciones(
+      id_devolucion,
+      id_factura,
+      id_producto,
+      motivo,
+      fecha
+    )
+    VALUES (
+      devolucion_seq.NEXTVAL,
+      p_id_factura,
+      p_id_producto,
+      p_motivo,
+      SYSDATE
+    );
+  END insertar_devolucion;
+
+  FUNCTION obtener_total_devoluciones(p_id_producto NUMBER) RETURN NUMBER IS
+    v_total NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_total
+    FROM devoluciones
+    WHERE id_producto = p_id_producto;
+
+    RETURN v_total;
+  END obtener_total_devoluciones;
+
+  FUNCTION obtener_motivo(p_id_devolucion NUMBER) RETURN VARCHAR2 IS
+    v_motivo VARCHAR2(255);
+  BEGIN
+    SELECT motivo INTO v_motivo
+    FROM devoluciones
+    WHERE id_devolucion = p_id_devolucion;
+
+    RETURN v_motivo;
+  END obtener_motivo;
+
+END pkg_devoluciones;
+/
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_usuarios AS
+  PROCEDURE insertar_usuario(p_nombre VARCHAR2, p_telefono NUMBER, p_direccion VARCHAR2, p_email VARCHAR2, p_contraseña VARCHAR2);
+  PROCEDURE actualizar_direccion(p_id_usuario NUMBER, p_nueva_direccion VARCHAR2);
+  PROCEDURE eliminar_usuario(p_id_usuario NUMBER);
+  FUNCTION obtener_email(p_id_usuario NUMBER) RETURN VARCHAR2;
+  FUNCTION existe_email(p_email VARCHAR2) RETURN BOOLEAN;
+END pkg_usuarios;
+/
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_usuarios AS
+
+  PROCEDURE insertar_usuario(p_nombre VARCHAR2, p_telefono NUMBER, p_direccion VARCHAR2, p_email VARCHAR2, p_contraseña VARCHAR2) IS
+  BEGIN
+    INSERT INTO usuario(id_usuario, nombre, telefono, direccion, email, contraseña)
+    VALUES (usuario_seq.NEXTVAL, p_nombre, p_telefono, p_direccion, p_email, p_contraseña);
+  END insertar_usuario;
+
+  PROCEDURE actualizar_direccion(p_id_usuario NUMBER, p_nueva_direccion VARCHAR2) IS
+  BEGIN
+    UPDATE usuario
+    SET direccion = p_nueva_direccion
+    WHERE id_usuario = p_id_usuario;
+  END actualizar_direccion;
+
+  PROCEDURE eliminar_usuario(p_id_usuario NUMBER) IS
+  BEGIN
+    DELETE FROM usuario WHERE id_usuario = p_id_usuario;
+  END eliminar_usuario;
+
+  FUNCTION obtener_email(p_id_usuario NUMBER) RETURN VARCHAR2 IS
+    v_email VARCHAR2(100);
+  BEGIN
+    SELECT email INTO v_email
+    FROM usuario
+    WHERE id_usuario = p_id_usuario;
+
+    RETURN v_email;
+  END obtener_email;
+
+  FUNCTION existe_email(p_email VARCHAR2) RETURN BOOLEAN IS
+    v_count NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM usuario
+    WHERE email = p_email;
+
+    RETURN v_count > 0;
+  END existe_email;
+
+END pkg_usuarios;
+/
+
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_proveedores AS
+  PROCEDURE insertar_proveedor(p_nombre VARCHAR2, p_telefono NUMBER, p_direccion VARCHAR2);
+  PROCEDURE actualizar_telefono(p_id_proveedor NUMBER, p_telefono NUMBER);
+  PROCEDURE eliminar_proveedor(p_id_proveedor NUMBER);
+  FUNCTION obtener_nombre_proveedor(p_id_proveedor NUMBER) RETURN VARCHAR2;
+END pkg_proveedores;
+/
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_proveedores AS
+
+  PROCEDURE insertar_proveedor(p_nombre VARCHAR2, p_telefono NUMBER, p_direccion VARCHAR2) IS
+  BEGIN
+    INSERT INTO proovedores(id_proovedor, nombre, telefono, direccion)
+    VALUES (proovedores_seq.NEXTVAL, p_nombre, p_telefono, p_direccion);
+  END insertar_proveedor;
+
+  PROCEDURE actualizar_telefono(p_id_proveedor NUMBER, p_telefono NUMBER) IS
+  BEGIN
+    UPDATE proovedores
+    SET telefono = p_telefono
+    WHERE id_proovedor = p_id_proveedor;
+  END actualizar_telefono;
+
+  PROCEDURE eliminar_proveedor(p_id_proveedor NUMBER) IS
+  BEGIN
+    DELETE FROM proovedores
+    WHERE id_proovedor = p_id_proveedor;
+  END eliminar_proveedor;
+
+  FUNCTION obtener_nombre_proveedor(p_id_proveedor NUMBER) RETURN VARCHAR2 IS
+    v_nombre VARCHAR2(100);
+  BEGIN
+    SELECT nombre INTO v_nombre
+    FROM proovedores
+    WHERE id_proovedor = p_id_proveedor;
+
+    RETURN v_nombre;
+  END obtener_nombre_proveedor;
+
+END pkg_proveedores;
+/
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_roles AS
+  PROCEDURE insertar_rol(p_nombre VARCHAR2);
+  PROCEDURE insertar_usuario_rol(p_id_usuario NUMBER, p_id_rol NUMBER);
+  FUNCTION obtener_rol_usuario(p_id_usuario NUMBER) RETURN NUMBER;
+  FUNCTION usuario_tiene_rol(p_id_usuario NUMBER, p_id_rol NUMBER) RETURN BOOLEAN;
+END pkg_roles;
+/
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_roles AS
+
+  PROCEDURE insertar_rol(p_nombre VARCHAR2) IS
+  BEGIN
+    INSERT INTO rol(id_rol, nombre)
+    VALUES (rol_seq.NEXTVAL, p_nombre);
+  END insertar_rol;
+
+  PROCEDURE insertar_usuario_rol(p_id_usuario NUMBER, p_id_rol NUMBER) IS
+  BEGIN
+    INSERT INTO usuario_rol(id_usuario_rol, id_usuario, id_rol)
+    VALUES (usuario_rol_seq.NEXTVAL, p_id_usuario, p_id_rol);
+  END insertar_usuario_rol;
+
+  FUNCTION obtener_rol_usuario(p_id_usuario NUMBER) RETURN NUMBER IS
+    v_id_rol NUMBER;
+  BEGIN
+    SELECT id_rol INTO v_id_rol
+    FROM usuario_rol
+    WHERE id_usuario = p_id_usuario
+    FETCH FIRST ROW ONLY;
+
+    RETURN v_id_rol;
+  END obtener_rol_usuario;
+
+  FUNCTION usuario_tiene_rol(p_id_usuario NUMBER, p_id_rol NUMBER) RETURN BOOLEAN IS
+    v_count NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM usuario_rol
+    WHERE id_usuario = p_id_usuario AND id_rol = p_id_rol;
+
+    RETURN v_count > 0;
+  END usuario_tiene_rol;
+
+END pkg_roles;
+/
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_categorias AS
+  PROCEDURE insertar_categoria(p_nombre VARCHAR2);
+  PROCEDURE eliminar_categoria(p_id_categoria NUMBER);
+  FUNCTION obtener_nombre_categoria(p_id_categoria NUMBER) RETURN VARCHAR2;
+  FUNCTION contar_productos_categoria(p_id_categoria NUMBER) RETURN NUMBER;
+  FUNCTION promedio_precio_categoria(p_id_categoria NUMBER) RETURN NUMBER;
+END pkg_categorias;
+/
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_categorias AS
+
+  PROCEDURE insertar_categoria(p_nombre VARCHAR2) IS
+  BEGIN
+    INSERT INTO categorias(id_categoria, nombre)
+    VALUES (categorias_seq.NEXTVAL, p_nombre);
+  END insertar_categoria;
+
+  PROCEDURE eliminar_categoria(p_id_categoria NUMBER) IS
+  BEGIN
+    DELETE FROM categorias
+    WHERE id_categoria = p_id_categoria;
+  END eliminar_categoria;
+
+  FUNCTION obtener_nombre_categoria(p_id_categoria NUMBER) RETURN VARCHAR2 IS
+    v_nombre VARCHAR2(100);
+  BEGIN
+    SELECT nombre INTO v_nombre
+    FROM categorias
+    WHERE id_categoria = p_id_categoria;
+
+    RETURN v_nombre;
+  END obtener_nombre_categoria;
+
+  FUNCTION contar_productos_categoria(p_id_categoria NUMBER) RETURN NUMBER IS
+    v_cantidad NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_cantidad
+    FROM productos
+    WHERE id_categoria = p_id_categoria;
+
+    RETURN v_cantidad;
+  END contar_productos_categoria;
+
+  FUNCTION promedio_precio_categoria(p_id_categoria NUMBER) RETURN NUMBER IS
+    v_promedio NUMBER;
+  BEGIN
+    SELECT AVG(precio) INTO v_promedio
+    FROM productos
+    WHERE id_categoria = p_id_categoria;
+
+    RETURN NVL(v_promedio, 0);
+  END promedio_precio_categoria;
+
+END pkg_categorias;
+/
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_utils AS
+  FUNCTION existe_email(p_email VARCHAR2) RETURN BOOLEAN;
+  FUNCTION obtener_nombre_producto(p_id_producto NUMBER) RETURN VARCHAR2;
+  FUNCTION obtener_email_usuario(p_id_usuario NUMBER) RETURN VARCHAR2;
+  FUNCTION es_stock_valido(p_id_producto NUMBER, p_cantidad NUMBER) RETURN BOOLEAN;
+END pkg_utils;
+/
+
+
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_utils AS
+
+  FUNCTION existe_email(p_email VARCHAR2) RETURN BOOLEAN IS
+    v_count NUMBER;
+  BEGIN
+    SELECT COUNT(*) INTO v_count
+    FROM usuario
+    WHERE email = p_email;
+
+    RETURN v_count > 0;
+  END existe_email;
+
+  FUNCTION obtener_nombre_producto(p_id_producto NUMBER) RETURN VARCHAR2 IS
+    v_nombre VARCHAR2(100);
+  BEGIN
+    SELECT nombre INTO v_nombre
+    FROM productos
+    WHERE id_producto = p_id_producto;
+
+    RETURN v_nombre;
+  END obtener_nombre_producto;
+
+  FUNCTION obtener_email_usuario(p_id_usuario NUMBER) RETURN VARCHAR2 IS
+    v_email VARCHAR2(100);
+  BEGIN
+    SELECT email INTO v_email
+    FROM usuario
+    WHERE id_usuario = p_id_usuario;
+
+    RETURN v_email;
+  END obtener_email_usuario;
+
+  FUNCTION es_stock_valido(p_id_producto NUMBER, p_cantidad NUMBER) RETURN BOOLEAN IS
+    v_stock NUMBER;
+  BEGIN
+    SELECT stock INTO v_stock
+    FROM productos
+    WHERE id_producto = p_id_producto;
+
+    RETURN v_stock >= p_cantidad;
+  END es_stock_valido;
+
+END pkg_utils;
+/
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_reporte AS
+  PROCEDURE productos_stock_bajo;
+  PROCEDURE productos_disponibles;
+  PROCEDURE listar_proveedores;
+  PROCEDURE listar_usuarios_roles;
+  PROCEDURE resumen_facturacion_usuarios;
+END pkg_reporte;
+/
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_reporte AS
+
+  PROCEDURE productos_stock_bajo IS
+  BEGIN
+    FOR r IN (SELECT nombre, stock FROM productos WHERE stock < 10) LOOP
+      DBMS_OUTPUT.PUT_LINE('Producto: ' || r.nombre || ' - Stock: ' || r.stock);
+    END LOOP;
+  END productos_stock_bajo;
+
+  PROCEDURE productos_disponibles IS
+  BEGIN
+    FOR r IN (SELECT nombre FROM productos WHERE estado = 'Disponible') LOOP
+      DBMS_OUTPUT.PUT_LINE('Disponible: ' || r.nombre);
+    END LOOP;
+  END productos_disponibles;
+
+  PROCEDURE listar_proveedores IS
+  BEGIN
+    FOR r IN (SELECT nombre, telefono FROM proovedores) LOOP
+      DBMS_OUTPUT.PUT_LINE('Proveedor: ' || r.nombre || ' - Teléfono: ' || r.telefono);
+    END LOOP;
+  END listar_proveedores;
+
+  PROCEDURE listar_usuarios_roles IS
+  BEGIN
+    FOR r IN (
+      SELECT u.nombre AS usuario, r2.nombre AS rol
+      FROM usuario u
+      JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
+      JOIN rol r2 ON ur.id_rol = r2.id_rol
+    ) LOOP
+      DBMS_OUTPUT.PUT_LINE('Usuario: ' || r.usuario || ' - Rol: ' || r.rol);
+    END LOOP;
+  END listar_usuarios_roles;
+
+  PROCEDURE resumen_facturacion_usuarios IS
+  BEGIN
+    FOR r IN (
+      SELECT u.nombre, SUM(f.total) AS total
+      FROM usuario u
+      JOIN facturas f ON u.id_usuario = f.id_usuario
+      GROUP BY u.nombre
+    ) LOOP
+      DBMS_OUTPUT.PUT_LINE('Usuario: ' || r.nombre || ' - Total Facturado: ' || r.total);
+    END LOOP;
+  END resumen_facturacion_usuarios;
+
+END pkg_reporte;
+/
+
+
+
+
+
+CREATE OR REPLACE PACKAGE pkg_consultas AS
+  PROCEDURE get_productos_disponibles(p_cursor OUT SYS_REFCURSOR);
+  PROCEDURE get_productos_stock_bajo(p_cursor OUT SYS_REFCURSOR);
+  PROCEDURE get_facturas_usuario(p_id_usuario NUMBER, p_cursor OUT SYS_REFCURSOR);
+  PROCEDURE get_devoluciones_producto(p_id_producto NUMBER, p_cursor OUT SYS_REFCURSOR);
+  PROCEDURE get_usuarios_roles(p_cursor OUT SYS_REFCURSOR);
+END pkg_consultas;
+/
+
+
+
+
+
+
+CREATE OR REPLACE PACKAGE BODY pkg_consultas AS
+
+  PROCEDURE get_productos_disponibles(p_cursor OUT SYS_REFCURSOR) IS
+  BEGIN
+    OPEN p_cursor FOR
+      SELECT * FROM productos WHERE estado = 'Disponible';
+  END get_productos_disponibles;
+
+  PROCEDURE get_productos_stock_bajo(p_cursor OUT SYS_REFCURSOR) IS
+  BEGIN
+    OPEN p_cursor FOR
+      SELECT * FROM productos WHERE stock < 10;
+  END get_productos_stock_bajo;
+
+  PROCEDURE get_facturas_usuario(p_id_usuario NUMBER, p_cursor OUT SYS_REFCURSOR) IS
+  BEGIN
+    OPEN p_cursor FOR
+      SELECT * FROM facturas WHERE id_usuario = p_id_usuario;
+  END get_facturas_usuario;
+
+  PROCEDURE get_devoluciones_producto(p_id_producto NUMBER, p_cursor OUT SYS_REFCURSOR) IS
+  BEGIN
+    OPEN p_cursor FOR
+      SELECT * FROM devoluciones WHERE id_producto = p_id_producto;
+  END get_devoluciones_producto;
+
+  PROCEDURE get_usuarios_roles(p_cursor OUT SYS_REFCURSOR) IS
+  BEGIN
+    OPEN p_cursor FOR
+      SELECT u.nombre AS usuario, r.nombre AS rol
+      FROM usuario u
+      JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
+      JOIN rol r ON ur.id_rol = r.id_rol;
+  END get_usuarios_roles;
+
+END pkg_consultas;
+/
+
+
+
+
+
+
+----Trigers
+
+
+CREATE TABLE auditoria_productos (
+  id_auditoria NUMBER GENERATED BY DEFAULT ON NULL AS IDENTITY,
+  id_producto NUMBER,
+  nombre_producto VARCHAR2(100),
+  fecha_insert DATE DEFAULT SYSDATE
+);
+
+
+
+CREATE OR REPLACE TRIGGER trg_auditar_ins_producto
+AFTER INSERT ON productos
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria_productos(id_producto, nombre_producto)
+  VALUES (:NEW.id_producto, :NEW.nombre);
+END;
+/
+
+
+
+
+CREATE OR REPLACE TRIGGER trg_control_stock
+BEFORE UPDATE OF stock ON productos
+FOR EACH ROW
+BEGIN
+  IF :NEW.stock < 0 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'El stock no puede ser negativo.');
+  END IF;
+END;
+/
+
+
+
+
+CREATE TABLE auditoria_usuarios (
+  id_auditoria NUMBER GENERATED BY DEFAULT ON NULL AS IDENTITY,
+  id_usuario NUMBER,
+  nombre_usuario VARCHAR2(100),
+  fecha_registro DATE DEFAULT SYSDATE
+);
+
+
+
+CREATE OR REPLACE TRIGGER trg_auditar_login
+AFTER INSERT ON usuario
+FOR EACH ROW
+BEGIN
+  INSERT INTO auditoria_usuarios(id_usuario, nombre_usuario)
+  VALUES (:NEW.id_usuario, :NEW.nombre);
+END;
+/
+
+
+
+CREATE OR REPLACE TRIGGER trg_factura_total
+AFTER INSERT ON detalles_facturas
+FOR EACH ROW
+BEGIN
+  UPDATE facturas
+  SET total = (
+    SELECT SUM(subtotal)
+    FROM detalles_facturas
+    WHERE id_factura = :NEW.id_factura
+  )
+  WHERE id_factura = :NEW.id_factura;
+END;
+/
+
+
+CREATE OR REPLACE TRIGGER trg_devolucion_auto
+AFTER INSERT ON devoluciones
+FOR EACH ROW
+BEGIN
+  UPDATE productos
+  SET estado = 'Devuelto'
+  WHERE id_producto = :NEW.id_producto;
+END;
+/
+
+
+
+
+
+
+---Cursores
+
+DECLARE
+  CURSOR cur_productos_disponibles IS
+    SELECT id_producto, nombre, stock
+    FROM productos
+    WHERE estado = 'Disponible';
+
+  v_id productos.id_producto%TYPE;
+  v_nombre productos.nombre%TYPE;
+  v_stock productos.stock%TYPE;
+BEGIN
+  OPEN cur_productos_disponibles;
+  LOOP
+    FETCH cur_productos_disponibles INTO v_id, v_nombre, v_stock;
+    EXIT WHEN cur_productos_disponibles%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Producto: ' || v_nombre || ' - Stock: ' || v_stock);
+  END LOOP;
+  CLOSE cur_productos_disponibles;
+END;
+/
+
+
+
+
+
+
+DECLARE
+  CURSOR cur_productos_por_proveedor IS
+    SELECT p.nombre AS producto, pr.nombre AS proveedor
+    FROM productos p
+    JOIN proovedores pr ON p.id_proveedor = pr.id_proovedor;
+
+  v_producto productos.nombre%TYPE;
+  v_proveedor proovedores.nombre%TYPE;
+BEGIN
+  OPEN cur_productos_por_proveedor;
+  LOOP
+    FETCH cur_productos_por_proveedor INTO v_producto, v_proveedor;
+    EXIT WHEN cur_productos_por_proveedor%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Producto: ' || v_producto || ' - Proveedor: ' || v_proveedor);
+  END LOOP;
+  CLOSE cur_productos_por_proveedor;
+END;
+/
+
+
+
+
+DECLARE
+  CURSOR cur_productos_stock_bajo IS
+    SELECT id_producto, nombre, stock
+    FROM productos
+    WHERE stock < 10;
+
+  v_id productos.id_producto%TYPE;
+  v_nombre productos.nombre%TYPE;
+  v_stock productos.stock%TYPE;
+BEGIN
+  OPEN cur_productos_stock_bajo;
+  LOOP
+    FETCH cur_productos_stock_bajo INTO v_id, v_nombre, v_stock;
+    EXIT WHEN cur_productos_stock_bajo%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Producto: ' || v_nombre || ' - Stock: ' || v_stock);
+  END LOOP;
+  CLOSE cur_productos_stock_bajo;
+END;
+/
+
+
+
+
+
+
+
+DECLARE
+  CURSOR cur_productos_por_categoria IS
+    SELECT p.nombre AS producto, c.nombre AS categoria
+    FROM productos p
+    JOIN categorias c ON p.id_categoria = c.id_categoria;
+
+  v_producto productos.nombre%TYPE;
+  v_categoria categorias.nombre%TYPE;
+BEGIN
+  OPEN cur_productos_por_categoria;
+  LOOP
+    FETCH cur_productos_por_categoria INTO v_producto, v_categoria;
+    EXIT WHEN cur_productos_por_categoria%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Producto: ' || v_producto || ' - Categoría: ' || v_categoria);
+  END LOOP;
+  CLOSE cur_productos_por_categoria;
+END;
+/
+
+
+
+
+
+
+
+DECLARE
+  CURSOR cur_facturas_por_usuario(p_id_usuario NUMBER) IS
+    SELECT id_factura, fecha, total
+    FROM facturas
+    WHERE id_usuario = p_id_usuario;
+
+  v_id_factura facturas.id_factura%TYPE;
+  v_fecha facturas.fecha%TYPE;
+  v_total facturas.total%TYPE;
+BEGIN
+  FOR factura IN cur_facturas_por_usuario(1) LOOP
+    DBMS_OUTPUT.PUT_LINE('Factura ID: ' || factura.id_factura || ' - Total: ' || factura.total);
+  END LOOP;
+END;
+/
+
+
+
+
+
+
+DECLARE
+  CURSOR cur_detalles_factura IS
+    SELECT f.id_factura, p.nombre AS producto, df.cantidad, df.subtotal
+    FROM detalles_facturas df
+    JOIN productos p ON df.id_producto = p.id_producto
+    JOIN facturas f ON df.id_factura = f.id_factura;
+
+  v_id_factura facturas.id_factura%TYPE;
+  v_producto productos.nombre%TYPE;
+  v_cantidad detalles_facturas.cantidad%TYPE;
+  v_subtotal detalles_facturas.subtotal%TYPE;
+BEGIN
+  OPEN cur_detalles_factura;
+  LOOP
+    FETCH cur_detalles_factura INTO v_id_factura, v_producto, v_cantidad, v_subtotal;
+    EXIT WHEN cur_detalles_factura%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Factura: ' || v_id_factura || ' - Producto: ' || v_producto || ' - Cantidad: ' || v_cantidad || ' - Subtotal: ' || v_subtotal);
+  END LOOP;
+  CLOSE cur_detalles_factura;
+END;
+/
+
+
+
+
+
+
+
+DECLARE
+  CURSOR cur_facturas_entre_fechas(p_fecha_ini DATE, p_fecha_fin DATE) IS
+    SELECT id_factura, fecha, total
+    FROM facturas
+    WHERE fecha BETWEEN p_fecha_ini AND p_fecha_fin;
+
+  v_id_factura facturas.id_factura%TYPE;
+  v_fecha facturas.fecha%TYPE;
+  v_total facturas.total%TYPE;
+BEGIN
+  FOR f IN cur_facturas_entre_fechas(TO_DATE('2024-01-01', 'YYYY-MM-DD'), TO_DATE('2025-01-01', 'YYYY-MM-DD')) LOOP
+    DBMS_OUTPUT.PUT_LINE('Factura: ' || f.id_factura || ' - Fecha: ' || f.fecha || ' - Total: ' || f.total);
+  END LOOP;
+END;
+/
+
+
+
+
+
+DECLARE
+  CURSOR cur_facturas_monto_alto(p_monto_min NUMBER) IS
+    SELECT id_factura, total
+    FROM facturas
+    WHERE total > p_monto_min;
+
+  v_id_factura facturas.id_factura%TYPE;
+  v_total facturas.total%TYPE;
+BEGIN
+  FOR f IN cur_facturas_monto_alto(10000) LOOP
+    DBMS_OUTPUT.PUT_LINE('Factura ID: ' || f.id_factura || ' - Total: ' || f.total);
+  END LOOP;
+END;
+/
+
+
+
+
+
+DECLARE
+  CURSOR cur_devoluciones_por_producto(p_id_producto NUMBER) IS
+    SELECT id_devolucion, id_factura, motivo, fecha
+    FROM devoluciones
+    WHERE id_producto = p_id_producto;
+
+  v_id_devolucion devoluciones.id_devolucion%TYPE;
+  v_id_factura devoluciones.id_factura%TYPE;
+  v_motivo devoluciones.motivo%TYPE;
+  v_fecha devoluciones.fecha%TYPE;
+BEGIN
+  FOR d IN cur_devoluciones_por_producto(1) LOOP
+    DBMS_OUTPUT.PUT_LINE('Devolución: ' || d.id_devolucion || ' - Motivo: ' || d.motivo || ' - Fecha: ' || d.fecha);
+  END LOOP;
+END;
+/
+
+
+
+
+
+
+DECLARE
+  CURSOR cur_devoluciones_recientes IS
+    SELECT id_devolucion, id_factura, id_producto, motivo, fecha
+    FROM devoluciones
+    WHERE fecha >= SYSDATE - 30;
+
+  v_id devoluciones.id_devolucion%TYPE;
+  v_factura devoluciones.id_factura%TYPE;
+  v_producto devoluciones.id_producto%TYPE;
+  v_motivo devoluciones.motivo%TYPE;
+  v_fecha devoluciones.fecha%TYPE;
+BEGIN
+  OPEN cur_devoluciones_recientes;
+  LOOP
+    FETCH cur_devoluciones_recientes INTO v_id, v_factura, v_producto, v_motivo, v_fecha;
+    EXIT WHEN cur_devoluciones_recientes%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Devolución: ' || v_id || ' - Motivo: ' || v_motivo || ' - Fecha: ' || v_fecha);
+  END LOOP;
+  CLOSE cur_devoluciones_recientes;
+END;
+/
+
+
+
+
+
+
+DECLARE
+  CURSOR cur_usuarios_con_rol IS
+    SELECT u.nombre AS usuario, r.nombre AS rol
+    FROM usuario u
+    JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
+    JOIN rol r ON ur.id_rol = r.id_rol;
+
+  v_usuario usuario.nombre%TYPE;
+  v_rol rol.nombre%TYPE;
+BEGIN
+  OPEN cur_usuarios_con_rol;
+  LOOP
+    FETCH cur_usuarios_con_rol INTO v_usuario, v_rol;
+    EXIT WHEN cur_usuarios_con_rol%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Usuario: ' || v_usuario || ' - Rol: ' || v_rol);
+  END LOOP;
+  CLOSE cur_usuarios_con_rol;
+END;
+/
+
+
+
+
+
+
+DECLARE
+  CURSOR cur_usuarios_sin_facturas IS
+    SELECT u.id_usuario, u.nombre, u.email
+    FROM usuario u
+    WHERE NOT EXISTS (
+      SELECT 1 FROM facturas f WHERE f.id_usuario = u.id_usuario
+    );
+
+  v_id_usuario usuario.id_usuario%TYPE;
+  v_nombre usuario.nombre%TYPE;
+  v_email usuario.email%TYPE;
+BEGIN
+  OPEN cur_usuarios_sin_facturas;
+  LOOP
+    FETCH cur_usuarios_sin_facturas INTO v_id_usuario, v_nombre, v_email;
+    EXIT WHEN cur_usuarios_sin_facturas%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Usuario: ' || v_nombre || ' - Email: ' || v_email);
+  END LOOP;
+  CLOSE cur_usuarios_sin_facturas;
+END;
+/
+
+
+
+
+
+DECLARE
+  CURSOR cur_usuarios_recientes IS
+    SELECT id_usuario, nombre, email, telefono
+    FROM usuario
+    WHERE fecha_registro >= ADD_MONTHS(SYSDATE, -1);
+
+  v_id_usuario usuario.id_usuario%TYPE;
+  v_nombre usuario.nombre%TYPE;
+  v_email usuario.email%TYPE;
+  v_telefono usuario.telefono%TYPE;
+BEGIN
+  OPEN cur_usuarios_recientes;
+  LOOP
+    FETCH cur_usuarios_recientes INTO v_id_usuario, v_nombre, v_email, v_telefono;
+    EXIT WHEN cur_usuarios_recientes%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Usuario: ' || v_nombre || ' - Email: ' || v_email);
+  END LOOP;
+  CLOSE cur_usuarios_recientes;
+END;
+/
+
+
+
+
+
+
+DECLARE
+  CURSOR cur_proveedores_activos IS
+    SELECT pr.id_proovedor, pr.nombre, pr.telefono
+    FROM proovedores pr
+    WHERE EXISTS (
+      SELECT 1 FROM productos p WHERE p.id_proveedor = pr.id_proovedor
+    );
+
+  v_id_prov proovedores.id_proovedor%TYPE;
+  v_nombre proovedores.nombre%TYPE;
+  v_telefono proovedores.telefono%TYPE;
+BEGIN
+  OPEN cur_proveedores_activos;
+  LOOP
+    FETCH cur_proveedores_activos INTO v_id_prov, v_nombre, v_telefono;
+    EXIT WHEN cur_proveedores_activos%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Proveedor: ' || v_nombre || ' - Teléfono: ' || v_telefono);
+  END LOOP;
+  CLOSE cur_proveedores_activos;
+END;
+/
+
+
+
+
+
+DECLARE
+  CURSOR cur_categorias_con_muchos_productos IS
+    SELECT c.id_categoria, c.nombre, COUNT(p.id_producto) AS cantidad
+    FROM categorias c
+    JOIN productos p ON c.id_categoria = p.id_categoria
+    GROUP BY c.id_categoria, c.nombre
+    HAVING COUNT(p.id_producto) > 5;
+
+  v_id_categoria categorias.id_categoria%TYPE;
+  v_nombre categorias.nombre%TYPE;
+  v_cantidad NUMBER;
+BEGIN
+  OPEN cur_categorias_con_muchos_productos;
+  LOOP
+    FETCH cur_categorias_con_muchos_productos INTO v_id_categoria, v_nombre, v_cantidad;
+    EXIT WHEN cur_categorias_con_muchos_productos%NOTFOUND;
+    DBMS_OUTPUT.PUT_LINE('Categoría: ' || v_nombre || ' - Productos: ' || v_cantidad);
+  END LOOP;
+  CLOSE cur_categorias_con_muchos_productos;
+END;
+/
